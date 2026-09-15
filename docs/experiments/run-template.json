@@ -1,0 +1,15 @@
+{
+  "fault_type": "none",
+  "fault_severity": "none",
+  "motor_setting": "record supply voltage and measured speed if available",
+  "motor_model": "TO BE IDENTIFIED",
+  "motor_rated_current_a": null,
+  "motor_stall_current_a": null,
+  "sensor_breakout": "TO BE IDENTIFIED",
+  "mounting": "record sensor orientation, fastening and machine support",
+  "shunt_ohms_measured": null,
+  "firmware_build": "record environment, source revision and binary hash",
+  "operator": "",
+  "guard_and_disconnect_check": "PENDING",
+  "notes": "Replace placeholders before a physical experiment. Do not create unsafe running faults."
+}

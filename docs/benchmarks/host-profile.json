@@ -1,0 +1,21 @@
+{
+  "source": "GENERATED MICROBENCHMARK",
+  "iterations": 100,
+  "model_version": "2607822b-b0c3-46e1-bf43-40a5f8efde38",
+  "wall_s": 0.16431050000000003,
+  "cpu_s": 0.171875,
+  "peak_traced_python_bytes": 118194,
+  "limitations": "Tracemalloc changes timing and does not measure total process RSS; no serial or hardware latency is included.",
+  "fft_ms": {
+    "p50": 0.11774999999997204,
+    "p95": 0.24523500000004358
+  },
+  "features_ms": {
+    "p50": 0.5934499999999954,
+    "p95": 1.2120550000000119
+  },
+  "inference_ms": {
+    "p50": 0.6350999999999996,
+    "p95": 1.3612400000000913
+  }
+}
