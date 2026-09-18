@@ -1,26 +1,54 @@
-import numpy as np
 import pytest
-from sentinel.processing.features import extract, spectrum, highpass
+from sentinel.processing.features import extract, FEATURE_NAMES, CHANNELS
 from sentinel.processing.windows import Windows
 from sentinel.state import StateMachine
 
 
-def test_sine_amplitude_energy_and_moments():
-    t=np.arange(800)/800
-    sine=0.2*np.sin(2*np.pi*40*t)
-    f=extract(np.column_stack([sine,sine,sine+1]),800)
-    assert f["x_rms"] == pytest.approx(0.2/np.sqrt(2))
-    assert f["x_dominant_hz"] == 40
-    assert f["x_dominant_amplitude"] == pytest.approx(0.2)
-    assert f["x_kurtosis"] == pytest.approx(1.5)
-    assert f["x_spectral_energy"] == pytest.approx(0.02)
-    assert f["z_rms"] == pytest.approx(f["x_rms"])
+def _flat(size=10, **overrides):
+    window = [{c: 50.0 for c in CHANNELS} for _ in range(size)]
+    for row in window:
+        row.update(overrides)
+    return window
 
 
-def test_constant_and_invalid_input():
-    assert all(v == 0 for v in extract(np.ones((800,3)),800).values())
-    with pytest.raises(ValueError): extract(np.full((8,3),np.nan),800)
-    with pytest.raises(ValueError): highpass(np.ones(800),800,500)
+def test_feature_names_shape():
+    assert len(FEATURE_NAMES) == 6*4 + 3
+
+
+def test_constant_window_metrics():
+    f = extract(_flat(), 1)
+    for c in CHANNELS:
+        assert f[f"{c}_mean"] == pytest.approx(50.0)
+        assert f[f"{c}_slope_per_s"] == pytest.approx(0.0)
+        assert f[f"{c}_range"] == pytest.approx(0.0)
+        assert f[f"{c}_std"] == pytest.approx(0.0)
+    assert f["level_agreement_abs_mean"] == pytest.approx(0.0)
+    assert f["level_agreement_abs_max"] == pytest.approx(0.0)
+    assert f["level_ultrasonic_min_slope_per_s"] == pytest.approx(0.0)
+
+
+def test_ramp_slope_range_and_min_step_slope():
+    n = 11
+    window = [{c: 50.0 for c in CHANNELS} for _ in range(n)]
+    for i, row in enumerate(window):
+        row["level_ultrasonic_pct"] = 50.0 - 2*i  # draining at 2 pct/s at fs=1
+    f = extract(window, 1)
+    assert f["level_ultrasonic_pct_slope_per_s"] == pytest.approx(-2.0)
+    assert f["level_ultrasonic_pct_range"] == pytest.approx(2*(n-1))
+    assert f["level_ultrasonic_min_slope_per_s"] == pytest.approx(-2.0)
+
+
+def test_level_agreement_feature_catches_mismatch():
+    f = extract(_flat(level_water_pct=30.0), 1)
+    assert f["level_agreement_abs_mean"] == pytest.approx(20.0)
+    assert f["level_agreement_abs_max"] == pytest.approx(20.0)
+
+
+def test_invalid_input_raises():
+    with pytest.raises(ValueError): extract(_flat(size=1), 1)
+    window = _flat(size=5)
+    window[0]["thermistor_temp_c"] = float("nan")
+    with pytest.raises(ValueError): extract(window, 1)
 
 
 def test_overlap_and_gap_reset():

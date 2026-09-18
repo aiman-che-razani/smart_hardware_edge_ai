@@ -1,157 +1,233 @@
 {
   "source": "SIMULATED",
-  "selected": "logistic",
+  "selected": "tree",
   "selection": "validation fault recall, false positives, simplicity",
   "validation": {
     "logistic": {
       "classification": {
-        "IMBALANCE_HIGH": {
+        "ENVIRONMENTAL_ANOMALY": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "IMBALANCE_LOW": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
-        },
-        "LOOSE_MOUNT": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
+        "LOW_WATER": {
+          "precision": 0.5714285714285714,
+          "recall": 0.8,
+          "f1-score": 0.6666666666666666,
+          "support": 5.0
         },
         "NORMAL": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
+          "precision": 0.6666666666666666,
+          "recall": 0.4,
+          "f1-score": 0.5,
+          "support": 5.0
         },
-        "accuracy": 1.0,
-        "macro avg": {
+        "OVERFLOW": {
+          "precision": 0.6666666666666666,
+          "recall": 0.8,
+          "f1-score": 0.7272727272727273,
+          "support": 5.0
+        },
+        "RAPID_DRAIN": {
+          "precision": 0.75,
+          "recall": 0.6,
+          "f1-score": 0.6666666666666666,
+          "support": 5.0
+        },
+        "SENSOR_MISMATCH": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 60.0
+          "support": 5.0
+        },
+        "accuracy": 0.7666666666666667,
+        "macro avg": {
+          "precision": 0.7757936507936508,
+          "recall": 0.7666666666666666,
+          "f1-score": 0.76010101010101,
+          "support": 30.0
         },
         "weighted avg": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 60.0
+          "precision": 0.7757936507936507,
+          "recall": 0.7666666666666667,
+          "f1-score": 0.76010101010101,
+          "support": 30.0
         }
       },
       "labels": [
-        "IMBALANCE_HIGH",
-        "IMBALANCE_LOW",
-        "LOOSE_MOUNT",
-        "NORMAL"
+        "ENVIRONMENTAL_ANOMALY",
+        "LOW_WATER",
+        "NORMAL",
+        "OVERFLOW",
+        "RAPID_DRAIN",
+        "SENSOR_MISMATCH"
       ],
       "confusion_matrix": [
         [
-          15,
+          5,
           0,
           0,
-          0
-        ],
-        [
           0,
-          15,
           0,
           0
         ],
         [
           0,
+          4,
           0,
-          15,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          2,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          3,
           0
         ],
         [
           0,
           0,
           0,
-          15
+          0,
+          0,
+          5
         ]
       ],
-      "fault_recall": 1.0,
-      "false_positive_rate": 0.0,
-      "missed_fault_windows": 0,
-      "roc_auc": 1.0,
-      "pr_auc": 1.0,
-      "batch_ms_per_window": 0.009523333333333328
+      "fault_recall": 0.96,
+      "false_positive_rate": 0.6,
+      "missed_fault_windows": 1,
+      "roc_auc": 0.952,
+      "pr_auc": 0.9914058355437667,
+      "batch_ms_per_window": 0.027379999999999072
     },
     "tree": {
       "classification": {
-        "IMBALANCE_HIGH": {
+        "ENVIRONMENTAL_ANOMALY": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "IMBALANCE_LOW": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
-        },
-        "LOOSE_MOUNT": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
+        "LOW_WATER": {
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1-score": 0.6,
+          "support": 5.0
         },
         "NORMAL": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "accuracy": 1.0,
-        "macro avg": {
+        "OVERFLOW": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 60.0
+          "support": 5.0
+        },
+        "RAPID_DRAIN": {
+          "precision": 0.6,
+          "recall": 0.6,
+          "f1-score": 0.6,
+          "support": 5.0
+        },
+        "SENSOR_MISMATCH": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 5.0
+        },
+        "accuracy": 0.8666666666666667,
+        "macro avg": {
+          "precision": 0.8666666666666667,
+          "recall": 0.8666666666666667,
+          "f1-score": 0.8666666666666667,
+          "support": 30.0
         },
         "weighted avg": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 60.0
+          "precision": 0.8666666666666667,
+          "recall": 0.8666666666666667,
+          "f1-score": 0.8666666666666667,
+          "support": 30.0
         }
       },
       "labels": [
-        "IMBALANCE_HIGH",
-        "IMBALANCE_LOW",
-        "LOOSE_MOUNT",
-        "NORMAL"
+        "ENVIRONMENTAL_ANOMALY",
+        "LOW_WATER",
+        "NORMAL",
+        "OVERFLOW",
+        "RAPID_DRAIN",
+        "SENSOR_MISMATCH"
       ],
       "confusion_matrix": [
         [
-          15,
+          5,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          5,
           0,
           0,
           0
         ],
         [
           0,
-          15,
+          0,
+          0,
+          5,
           0,
           0
         ],
         [
           0,
+          2,
           0,
-          15,
+          0,
+          3,
           0
         ],
         [
           0,
           0,
           0,
-          15
+          0,
+          0,
+          5
         ]
       ],
       "fault_recall": 1.0,
@@ -159,86 +235,124 @@
       "missed_fault_windows": 0,
       "roc_auc": 1.0,
       "pr_auc": 1.0,
-      "batch_ms_per_window": 0.003269999999999662
+      "batch_ms_per_window": 0.00719333333332924
     },
     "forest": {
       "classification": {
-        "IMBALANCE_HIGH": {
+        "ENVIRONMENTAL_ANOMALY": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "IMBALANCE_LOW": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
-        },
-        "LOOSE_MOUNT": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 15.0
+        "LOW_WATER": {
+          "precision": 0.6666666666666666,
+          "recall": 0.8,
+          "f1-score": 0.7272727272727273,
+          "support": 5.0
         },
         "NORMAL": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "accuracy": 1.0,
-        "macro avg": {
+        "OVERFLOW": {
           "precision": 1.0,
           "recall": 1.0,
           "f1-score": 1.0,
-          "support": 60.0
+          "support": 5.0
+        },
+        "RAPID_DRAIN": {
+          "precision": 0.75,
+          "recall": 0.6,
+          "f1-score": 0.6666666666666666,
+          "support": 5.0
+        },
+        "SENSOR_MISMATCH": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 5.0
+        },
+        "accuracy": 0.9,
+        "macro avg": {
+          "precision": 0.9027777777777777,
+          "recall": 0.8999999999999999,
+          "f1-score": 0.8989898989898991,
+          "support": 30.0
         },
         "weighted avg": {
-          "precision": 1.0,
-          "recall": 1.0,
-          "f1-score": 1.0,
-          "support": 60.0
+          "precision": 0.9027777777777778,
+          "recall": 0.9,
+          "f1-score": 0.898989898989899,
+          "support": 30.0
         }
       },
       "labels": [
-        "IMBALANCE_HIGH",
-        "IMBALANCE_LOW",
-        "LOOSE_MOUNT",
-        "NORMAL"
+        "ENVIRONMENTAL_ANOMALY",
+        "LOW_WATER",
+        "NORMAL",
+        "OVERFLOW",
+        "RAPID_DRAIN",
+        "SENSOR_MISMATCH"
       ],
       "confusion_matrix": [
         [
-          15,
+          5,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          5,
           0,
           0,
           0
         ],
         [
           0,
-          15,
+          0,
+          0,
+          5,
           0,
           0
         ],
         [
           0,
+          2,
           0,
-          15,
+          0,
+          3,
           0
         ],
         [
           0,
           0,
           0,
-          15
+          0,
+          0,
+          5
         ]
       ],
       "fault_recall": 1.0,
       "false_positive_rate": 0.0,
       "missed_fault_windows": 0,
       "roc_auc": 1.0,
-      "pr_auc": 1.0,
-      "batch_ms_per_window": 0.08251500000000152
+      "pr_auc": 1.0000000000000002,
+      "batch_ms_per_window": 0.17420999999999687
     },
     "isolation": {
       "classification": {
@@ -248,50 +362,64 @@
           "f1-score": 0.0,
           "support": 0.0
         },
-        "IMBALANCE_HIGH": {
+        "ENVIRONMENTAL_ANOMALY": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "IMBALANCE_LOW": {
+        "LOW_WATER": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 15.0
-        },
-        "LOOSE_MOUNT": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1-score": 0.0,
-          "support": 15.0
+          "support": 5.0
         },
         "NORMAL": {
-          "precision": 1.0,
-          "recall": 0.8,
-          "f1-score": 0.8888888888888888,
-          "support": 15.0
+          "precision": 0.4166666666666667,
+          "recall": 1.0,
+          "f1-score": 0.5882352941176471,
+          "support": 5.0
         },
-        "accuracy": 0.2,
+        "OVERFLOW": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "RAPID_DRAIN": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "SENSOR_MISMATCH": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "accuracy": 0.16666666666666666,
         "macro avg": {
-          "precision": 0.2,
-          "recall": 0.16,
-          "f1-score": 0.17777777777777776,
-          "support": 60.0
+          "precision": 0.05952380952380953,
+          "recall": 0.14285714285714285,
+          "f1-score": 0.08403361344537816,
+          "support": 30.0
         },
         "weighted avg": {
-          "precision": 0.25,
-          "recall": 0.2,
-          "f1-score": 0.2222222222222222,
-          "support": 60.0
+          "precision": 0.06944444444444445,
+          "recall": 0.16666666666666666,
+          "f1-score": 0.09803921568627452,
+          "support": 30.0
         }
       },
       "labels": [
         "ANOMALY",
-        "IMBALANCE_HIGH",
-        "IMBALANCE_LOW",
-        "LOOSE_MOUNT",
-        "NORMAL"
+        "ENVIRONMENTAL_ANOMALY",
+        "LOW_WATER",
+        "NORMAL",
+        "OVERFLOW",
+        "RAPID_DRAIN",
+        "SENSOR_MISMATCH"
       ],
       "confusion_matrix": [
         [
@@ -299,43 +427,71 @@
           0,
           0,
           0,
-          0
-        ],
-        [
-          15,
-          0,
           0,
           0,
           0
         ],
         [
-          15,
+          1,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          0,
+          0,
           0,
           0,
           0,
           0
         ],
         [
-          15,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          0,
+          0,
           0,
           0,
           0,
           0
         ],
         [
+          2,
+          0,
+          0,
           3,
           0,
           0,
+          0
+        ],
+        [
+          5,
           0,
-          12
+          0,
+          0,
+          0,
+          0,
+          0
         ]
       ],
-      "fault_recall": 1.0,
-      "false_positive_rate": 0.2,
-      "missed_fault_windows": 0,
-      "roc_auc": 1.0,
-      "pr_auc": 0.9999999999999999,
-      "batch_ms_per_window": 0.05158000000000292
+      "fault_recall": 0.72,
+      "false_positive_rate": 0.0,
+      "missed_fault_windows": 7,
+      "roc_auc": 0.92,
+      "pr_auc": 0.9833932778976259,
+      "batch_ms_per_window": 0.09995666666666736
     },
     "threshold": {
       "classification": {
@@ -345,50 +501,64 @@
           "f1-score": 0.0,
           "support": 0.0
         },
-        "IMBALANCE_HIGH": {
+        "ENVIRONMENTAL_ANOMALY": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 15.0
+          "support": 5.0
         },
-        "IMBALANCE_LOW": {
+        "LOW_WATER": {
           "precision": 0.0,
           "recall": 0.0,
           "f1-score": 0.0,
-          "support": 15.0
-        },
-        "LOOSE_MOUNT": {
-          "precision": 0.0,
-          "recall": 0.0,
-          "f1-score": 0.0,
-          "support": 15.0
+          "support": 5.0
         },
         "NORMAL": {
-          "precision": 0.3333333333333333,
+          "precision": 0.2,
           "recall": 1.0,
-          "f1-score": 0.5,
-          "support": 15.0
+          "f1-score": 0.3333333333333333,
+          "support": 5.0
         },
-        "accuracy": 0.25,
+        "OVERFLOW": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "RAPID_DRAIN": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "SENSOR_MISMATCH": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 5.0
+        },
+        "accuracy": 0.16666666666666666,
         "macro avg": {
-          "precision": 0.06666666666666667,
-          "recall": 0.2,
-          "f1-score": 0.1,
-          "support": 60.0
+          "precision": 0.028571428571428574,
+          "recall": 0.14285714285714285,
+          "f1-score": 0.047619047619047616,
+          "support": 30.0
         },
         "weighted avg": {
-          "precision": 0.08333333333333333,
-          "recall": 0.25,
-          "f1-score": 0.125,
-          "support": 60.0
+          "precision": 0.03333333333333333,
+          "recall": 0.16666666666666666,
+          "f1-score": 0.05555555555555555,
+          "support": 30.0
         }
       },
       "labels": [
         "ANOMALY",
-        "IMBALANCE_HIGH",
-        "IMBALANCE_LOW",
-        "LOOSE_MOUNT",
-        "NORMAL"
+        "ENVIRONMENTAL_ANOMALY",
+        "LOW_WATER",
+        "NORMAL",
+        "OVERFLOW",
+        "RAPID_DRAIN",
+        "SENSOR_MISMATCH"
       ],
       "confusion_matrix": [
         [
@@ -396,11 +566,6 @@
           0,
           0,
           0,
-          0
-        ],
-        [
-          15,
-          0,
           0,
           0,
           0
@@ -409,31 +574,64 @@
           0,
           0,
           0,
+          5,
           0,
-          15
+          0,
+          0
         ],
         [
           0,
           0,
           0,
+          5,
           0,
-          15
+          0,
+          0
         ],
         [
           0,
           0,
           0,
+          5,
           0,
-          15
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
         ]
       ],
-      "fault_recall": 0.3333333333333333,
+      "fault_recall": 0.2,
       "false_positive_rate": 0.0,
-      "missed_fault_windows": 30,
-      "roc_auc": 1.0,
-      "pr_auc": 1.0
+      "missed_fault_windows": 20,
+      "roc_auc": 0.808,
+      "pr_auc": 0.9628428133807445
     }
   },
   "test": "untouched; run evaluate once after selection",
-  "version": "2607822b-b0c3-46e1-bf43-40a5f8efde38"
+  "version": "13d9e5a3-265b-4b9c-bc19-6b53442d3b2b"
 }

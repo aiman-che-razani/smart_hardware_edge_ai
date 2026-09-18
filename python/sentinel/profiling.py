@@ -4,22 +4,23 @@ from pathlib import Path
 import time
 import tracemalloc
 import numpy as np
-from sentinel.processing.features import spectrum, extract
+from sentinel.processing.features import extract, CHANNELS
 from sentinel.ml.inference import Inference
 
 
+def _window(size=30):
+    return [{channel: 50.0 + i * 0.1 for channel in CHANNELS} for i in range(size)]
+
+
 def profile(output, model=None, iterations=100):
-    t=np.arange(800)/800
-    values=np.column_stack([0.1*np.sin(2*np.pi*30*t),0.05*np.sin(2*np.pi*30*t),np.ones(800)])
+    window=_window()
     inference=Inference(model,allow_simulated=True)
-    timings={name:[] for name in ('fft_ms','features_ms','inference_ms')}
-    extract(values,800) # warm imports/caches before timing
+    timings={name:[] for name in ('features_ms','inference_ms')}
+    extract(window,1) # warm imports/caches before timing
     tracemalloc.start()
     started=time.perf_counter(); cpu=time.process_time()
     for _ in range(iterations):
-        start=time.perf_counter(); spectrum(values[:,0],800)
-        timings['fft_ms'].append((time.perf_counter()-start)*1000)
-        start=time.perf_counter(); features=extract(values,800)
+        start=time.perf_counter(); features=extract(window,1)
         timings['features_ms'].append((time.perf_counter()-start)*1000)
         start=time.perf_counter(); inference.score(features)
         timings['inference_ms'].append((time.perf_counter()-start)*1000)

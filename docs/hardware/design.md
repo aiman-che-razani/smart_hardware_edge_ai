@@ -1,98 +1,87 @@
 # Hardware design proposal
 
+> Pivoted from the original ADXL345/INA219/DS18B20/motor BOM to the tank/
+> environmental sensor set actually on hand — see
+> [ADR-008](../decisions/ADR-008-sensor-set-pivot.md). No physical acceptance
+> from the old BOM carries over; every item below is unverified against real
+> hardware until it's actually wired and exercised.
+
 ## Initial BOM
 
 | Item | Qty | Selection / verification |
 |---|---|---|
 | Arduino Uno R3 / ATmega328P | 1 | Existing; identify board and USB bridge |
 | USB data cable | 1 | Connector matching board; data-capable |
-| ADXL345 breakout | 1 | Obtain exact schematic and supply/I/O ratings |
-| SPI-capable voltage translator | as needed | Direction-controlled, suitable for selected SPI clock; avoid generic slow I2C shifters |
-| Regulated 3.3 V source / decoupling | as needed | Check breakout and Uno rail budget |
-| INA219 breakout | 1 | Shunt resistance, tolerance, power and connector ratings must cover motor stall current |
-| DS18B20, externally powered | 1 | Verify package pinout/probe wire mapping |
-| 4.7 kohm 1-Wire pull-up | 1 | Initial value; validate with cable capacitance |
-| Green / amber / red LEDs | 1 each | Individual 1 kohm starting resistors; check brightness/current |
-| Active buzzer + transistor driver | 1 | Rated supply/current, base/gate resistor and off-state bias; diode for inductive load |
-| 6–12 V DC motor and guarded fixture | 1 | Confirm stall current, mounting and mechanical containment |
-| External current-limited motor supply | 1 | Voltage/current matched to motor |
-| Fuse, disconnect, suppression, terminal wiring | as needed | Size from motor current and wiring; disconnect accessible |
-| Breadboard, short jumpers, rigid sensor mount | as needed | Keep motor-current wiring off breadboard |
+| HC-SR04 ultrasonic sensor | 1 | Mount above the tank, facing the liquid surface; confirm 3.3–5V logic compatibility with the Uno (most HC-SR04 modules are 5V-native) |
+| Water-level detection module (resistive/analog) | 1 | Obtain exact ADC dry/wet range by measurement — the `--water-dry-raw`/`--water-wet-raw` CLI defaults (200/800) are placeholders |
+| DHT temperature/humidity module | 1 | Confirm DHT11 vs DHT22 from the part's markings; firmware defaults to DHT11 scaling (`ambient.cpp`) — swap to `SimpleDHT22` and drop the ×10 whole-unit scaling if it's a DHT22 |
+| Thermistor (NTC) | 1 | Confirm rated resistance/beta from the part; `pipeline.py`'s NTC beta conversion uses placeholder constants (10kΩ series, 10kΩ @25°C, β=3950) pending the datasheet |
+| Photoresistor (LDR) | 1 | Any fixed-resistor voltage divider; reported as an uncalibrated relative percentage, not lux |
+| PN2222 NPN transistor | 1 | Drives the buzzer from D8 (base resistor from D8, buzzer/load on collector, emitter to GND) — base resistor value depends on the buzzer's rated current, size it against the PN2222's datasheet |
+| Green / amber / red LEDs | 1 each | Individual 1 kΩ starting resistors; check brightness/current |
+| Fixed resistors for both analog dividers (thermistor, photoresistor) | 2 | Values depend on the specific parts; size from their datasheets |
+| Breadboard, jumpers | as needed | |
 | Multimeter | 1 | Required for polarity, continuity and rail checks |
-| Logic analyzer / oscilloscope | optional | Later timing, bus and power-noise measurements |
 
-No purchase price or stock availability is claimed. Phase 1 only needs Uno,
-USB cable, ADXL345, verified power/translation, wiring and multimeter. Keep motor
-disconnected during static sensor tests.
+**Deferred, not wired this revision:** a stepper motor and an IR receiver module
+are also on hand but have no role in the tank/environmental design. Reserved
+pins are set aside for them (see below) but no firmware or wiring exists yet —
+see ADR-008 for the reasoning.
 
-## Proposed Uno pin allocation
+No purchase price or stock availability is claimed. Keep any liquid away from
+the Uno, breadboard and USB connection; route the water-level probe's leads so
+a drip cannot bridge onto logic-level wiring.
+
+## Uno pin allocation
 
 | Uno | Signal | Direction / notes |
 |---|---|---|
 | D0/D1 | USB UART RX/TX | Reserve; no external peripheral |
-| D2 | ADXL345 INT1 | Sensor → Uno; verify high-level threshold or translate |
-| D3 | Reserved | Future RPM interrupt |
-| D4 | DS18B20 DQ | Bidirectional; pull up to verified logic supply |
+| D2 | HC-SR04 ECHO | Sensor → Uno |
+| D3 | HC-SR04 TRIG | Uno → sensor |
+| D4 | DHT data | Bidirectional, single-wire; same slot the old DS18B20 used |
 | D5 | Green LED | Output through resistor |
 | D6 | Amber LED | Output through resistor |
 | D7 | Red LED | Output through resistor |
-| D8 | Buzzer driver | Output; hardware bias keeps driver off at reset |
-| D9 | Reserved timing marker | Future analyzer measurement |
-| D10 | ADXL345 CS | Uno → sensor through required translation; idle high |
-| D11 | ADXL345 SDI/MOSI | Uno → sensor through required translation |
-| D12 | ADXL345 SDO/MISO | Sensor → Uno; check guaranteed logic thresholds |
-| D13 | ADXL345 SCLK | Uno → sensor through required translation; shared onboard LED |
-| A4/SDA | INA219 SDA | Same physical bus as dedicated SDA header |
-| A5/SCL | INA219 SCL | Same physical bus as dedicated SCL header |
-| A0–A3 | Reserved | No initial analog acquisition |
+| D8 | Buzzer, via PN2222 | Output; base resistor from D8 to the PN2222 base |
+| D9–D12 | Reserved for a future stepper (ULN2003 driver + 28BYJ-48, 4 pins) | **Deferred — not wired** |
+| D13 | Free | Shares the onboard LED; avoid using as a sensor input |
+| A0 | Water-level module | Analog in |
+| A1 | Thermistor divider midpoint | Analog in |
+| A2 | Photoresistor divider midpoint | Analog in |
+| A3 | Reserved for a future IR receiver (read via `digitalRead`, sidesteps the D2/D3 interrupt contention an interrupt-based IR library would want) | **Deferred — not wired** |
+| A4/A5 | Free | I2C-capable if ever needed; unused for now |
 
-No external LED uses D13, because it is SPI clock. Document final breakout pin
-labels before attaching wires; this table is a net allocation, not an approved
-breakout-specific schematic.
+No SPI, no I2C, no OneWire in this design — everything is a plain digital pulse
+(HC-SR04), a single-wire digital read (DHT), or a plain `analogRead()`.
 
 ## Power and wiring concept
 
 ```text
-PC USB ------------------> Uno logic power
-verified low-voltage rail -> ADXL345 supply
-Uno SPI <-> voltage interface <-> ADXL345
-Uno logic rail -----------> INA219 logic supply (verify breakout pull-ups)
-Uno 5 V ------------------> DS18B20 VDD (external-power mode)
-
-motor PSU + -> fuse -> accessible disconnect -> INA219 VIN+ -> VIN- -> motor +
-motor - --------------------------------------------------------> PSU -
-PSU - ---- common reference/star point ---- Uno GND / sensor grounds
+PC USB ----------------> Uno logic power (5V)
+Uno 5V -----------------> HC-SR04 VCC (most modules are 5V-native)
+Uno 5V -----------------> DHT VCC (check the specific module's rated voltage)
+Uno 5V -----------------> water-level module VCC
+Uno 5V -- divider R --> thermistor -- GND      (A1 taps the midpoint)
+Uno 5V -- divider R --> photoresistor -- GND   (A2 taps the midpoint)
+Uno GND ----------------> all module GNDs, common reference
+D8 -- base resistor --> PN2222 base; buzzer/load on collector; PN2222 emitter to GND
 ```
 
-Do not connect the motor supply positive to Uno 5 V or power the motor from Uno.
-Route motor return current directly to its supply, away from sensor ground paths.
-USB ground joins the circuit; verify grounding before combining grounded bench
-equipment. Add motor suppression appropriate to the final drive topology; no PWM
-driver or motor control is included initially.
-
-The bare ADXL345 uses a 2.0–3.6 V supply. A breakout accepting 5 V power does not
-necessarily tolerate 5 V SPI inputs. Verify CS/SCLK/MOSI level translation and
-MISO/INT logic margin against both devices' guaranteed thresholds. Keep wiring
-short; select SPI mode/clock from the datasheet during Phase 1.
-
-INA219 bus range is 0–26 V, but this does not establish module current capacity.
-Check shunt heating using I²R, shunt measurement range, motor transients, connectors
-and traces. For DS18B20, verify actual package pinout; probe wire colors are not
-reliable pin specifications. Give each LED its own resistor. Drive buzzer through
-a rated transistor rather than assuming GPIO can supply its current.
+Verify each module's actual rated supply voltage before wiring to Uno 5V — some
+water-level and DHT modules are 3.3V-only. Keep the water-level probe's wiring
+and any liquid well away from the breadboard's logic connections.
 
 ## Before power-on
 
-Record board/module part numbers and photos; review schematics; measure rails and
-polarity with sensor disconnected; inspect grounds and shorts; then connect the
-sensor with power off. Record the final wiring schematic after modules are known.
-No imbalance weights, loosened running fixtures or hand obstruction are authorized
-by this preliminary design. Develop guarded, rated fault experiments in Phase 7.
+Record board/module part numbers and photos; review each module's datasheet;
+measure rails and polarity with everything disconnected; then connect one
+sensor at a time with power off, checking continuity before applying power.
+Record the final wiring schematic once all modules are confirmed.
 
 ## Primary references
 
 - [Uno documentation](https://docs.arduino.cc/hardware/uno-rev3/)
 - [Uno pinout](https://content.arduino.cc/assets/Pinout-UNOrev3_latest.pdf)
-- [ADXL345 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/adxl345.pdf)
-- [INA219 specifications](https://www.ti.com/product/INA219)
-- [DS18B20 datasheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ds18b20.pdf)
+- [HC-SR04 datasheet](https://cdn.sparkfun.com/datasheets/Sensors/Proximity/HCSR04.pdf)
+- [DHT11 datasheet](https://www.mouser.com/datasheet/2/758/DHT11-Technical-Data-Sheet-Translated-Version-1143054.pdf)

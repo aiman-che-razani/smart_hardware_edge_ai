@@ -1,0 +1,17 @@
+{
+  "source": "GENERATED MICROBENCHMARK",
+  "iterations": 100,
+  "model_version": "threshold-demo-v1",
+  "wall_s": 0.05945,
+  "cpu_s": 0.0625,
+  "peak_traced_python_bytes": 17989,
+  "limitations": "Tracemalloc changes timing and does not measure total process RSS; no serial or hardware latency is included.",
+  "features_ms": {
+    "p50": 0.5534000000000372,
+    "p95": 0.7732549999999906
+  },
+  "inference_ms": {
+    "p50": 0.0013999999999847468,
+    "p95": 0.0025400000000147505
+  }
+}

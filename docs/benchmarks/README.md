@@ -15,7 +15,7 @@ raw evidence path, summary and limitations. Store large logs outside Git.
 | Throughput / CRC failures | Not measured |
 | Phase 0 smoke firmware flash/static SRAM | 1520 / 188 bytes; see verification below |
 | Runtime stack headroom | Not measured |
-| Host processing / FFT / ML latency and resources | Not implemented |
+| Host processing / feature / ML latency and resources | Not implemented |
 | Model metrics / false alarms per hour | No dataset or model |
 | Physical alarm activation latency | Not measured |
 

@@ -1,0 +1,80 @@
+{
+  "classification": {
+    "IMBALANCE_HIGH": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 15.0
+    },
+    "IMBALANCE_LOW": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 15.0
+    },
+    "LOOSE_MOUNT": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 15.0
+    },
+    "NORMAL": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 15.0
+    },
+    "accuracy": 1.0,
+    "macro avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
+    },
+    "weighted avg": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 60.0
+    }
+  },
+  "labels": [
+    "IMBALANCE_HIGH",
+    "IMBALANCE_LOW",
+    "LOOSE_MOUNT",
+    "NORMAL"
+  ],
+  "confusion_matrix": [
+    [
+      15,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      15,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      15,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      15
+    ]
+  ],
+  "fault_recall": 1.0,
+  "false_positive_rate": 0.0,
+  "missed_fault_windows": 0,
+  "roc_auc": 1.0,
+  "pr_auc": 1.0,
+  "source": "SIMULATED",
+  "model_sha256": "d6dd08e4f1e791af5f953708be1fb0a9d78764e058f1924fd0dcd26102916f90"
+}

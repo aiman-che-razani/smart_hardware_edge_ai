@@ -1,4 +1,81 @@
-# Software verification — 2026-09-15
+# Software verification
+
+> Two dated verification passes below: 2026-09-15 (pre-pivot, motor/vibration
+> design) and 2026-09-18 (post-pivot, tank/environmental design — see
+> [ADR-008](../decisions/ADR-008-sensor-set-pivot.md)). Neither section's
+> numbers apply to the other design; both are kept as an honest record of what
+> was actually measured, when.
+
+## Software verification — 2026-09-18 (post sensor-set pivot)
+
+### Scope
+
+All runs below use synthetic signals on the Windows host. No Uno upload,
+physical sampling test, real fault classification or measured hardware alarm
+latency was performed. Source is an uncommitted working tree on this machine.
+
+### Automated checks
+
+- `python -m pytest -q`: **58 passed** (3.65 s observed).
+- Covers 37 binary split boundaries, CRC vector/recovery, sequence rollover,
+  command retry/duplicate ACK behavior, the new slow-signal feature math
+  (constant/ramp/mismatch cases), persistence/recovery, invalid sensors/DHT
+  checksum error, Parquet/SQLite, grouped ML, API/WebSocket and an actual
+  Dash callback request producing chart JSON.
+
+### Firmware compilation
+
+PlatformIO 6.1.19, atmelavr 5.1.0, Arduino AVR framework 5.2.0, GCC 7.3.0,
+SimpleDHT 1.0.15. Both environments build successfully — no SPI/I2C/OneWire
+remains in the design.
+
+| Environment | Flash bytes / 32256 | Static SRAM bytes / 2048 |
+|---|---:|---:|
+| uno (binary, 1 Hz report) | 6856 | 375 |
+| uno_csv (debug) | ~same order | ~same order |
+
+Flash/SRAM both dropped versus the pre-pivot build (was 7746/544) despite
+adding a library dependency, since SPI/I2C/OneWire drivers were replaced by
+plain digital/analog reads.
+
+### Synthetic end-to-end observations
+
+| Run | Duration | Records | Windows | State | Errors |
+|---|---:|---:|---:|---|---:|
+| CYCLE demo | 90 s | 90 | 5 | NORMAL | 0 |
+| SENSOR_MISMATCH (integration test) | 90 s | 90 | 5 | FAULT | 0 |
+
+Median feature-extraction time was 0.42 ms, inference (no-model threshold
+score) 0.0016 ms, on this machine — per-window host observations, excluding
+serial travel and physical actuation. Generated timestamps produce exactly
+1 Hz and zero jitter by construction; this validates analysis plumbing, not
+sensor timing accuracy.
+
+### Synthetic ML workflow
+
+Generated 6 independent runs (3 NORMAL, 3 LOW_WATER), 90 s/run. Run groups
+were split into train/validation/test. A model was selected under the
+documented validation ranking (fault_recall 0.2 in this small validation
+slice); held-out test evaluation reached fault_recall 0.96, false_positive_rate
+0.2. This demonstrates the split/train/evaluate path on a small synthetic
+dataset — **not a physical diagnostic performance claim**, and not a
+result to read much into given the tiny run count. Curated evidence:
+`synthetic-model-validation.json`, `synthetic-model-test.json` (this
+directory), `host-profile-post-pivot.json` for the microbenchmark. The
+pre-pivot `*-pre-pivot.json` files are the 2026-09-15 evidence, kept for
+the historical record — their IMBALANCE/LOOSE_MOUNT labels belong to the
+motor-monitoring design, not this one.
+
+### Reproduce and extend
+
+Use fresh output directories and the commands in the operating guide. Pending:
+hardware rates/jitter, USB throughput, sensor loss, runtime stack headroom,
+physical fault metrics, synchronized end-to-end latency, and any tank
+demonstration footage.
+
+---
+
+## Software verification — 2026-09-15 (pre-pivot, motor/vibration design)
 
 ## Scope
 

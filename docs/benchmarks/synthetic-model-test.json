@@ -1,80 +1,118 @@
 {
   "classification": {
-    "IMBALANCE_HIGH": {
+    "ENVIRONMENTAL_ANOMALY": {
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
-      "support": 15.0
+      "support": 5.0
     },
-    "IMBALANCE_LOW": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 15.0
-    },
-    "LOOSE_MOUNT": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 15.0
+    "LOW_WATER": {
+      "precision": 0.6,
+      "recall": 0.6,
+      "f1-score": 0.6,
+      "support": 5.0
     },
     "NORMAL": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 15.0
+      "precision": 0.8,
+      "recall": 0.8,
+      "f1-score": 0.8,
+      "support": 5.0
     },
-    "accuracy": 1.0,
-    "macro avg": {
+    "OVERFLOW": {
+      "precision": 0.8,
+      "recall": 0.8,
+      "f1-score": 0.8,
+      "support": 5.0
+    },
+    "RAPID_DRAIN": {
+      "precision": 0.6,
+      "recall": 0.6,
+      "f1-score": 0.6,
+      "support": 5.0
+    },
+    "SENSOR_MISMATCH": {
       "precision": 1.0,
       "recall": 1.0,
       "f1-score": 1.0,
-      "support": 60.0
+      "support": 5.0
+    },
+    "accuracy": 0.8,
+    "macro avg": {
+      "precision": 0.8000000000000002,
+      "recall": 0.8000000000000002,
+      "f1-score": 0.8000000000000002,
+      "support": 30.0
     },
     "weighted avg": {
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1-score": 1.0,
-      "support": 60.0
+      "precision": 0.8,
+      "recall": 0.8,
+      "f1-score": 0.8,
+      "support": 30.0
     }
   },
   "labels": [
-    "IMBALANCE_HIGH",
-    "IMBALANCE_LOW",
-    "LOOSE_MOUNT",
-    "NORMAL"
+    "ENVIRONMENTAL_ANOMALY",
+    "LOW_WATER",
+    "NORMAL",
+    "OVERFLOW",
+    "RAPID_DRAIN",
+    "SENSOR_MISMATCH"
   ],
   "confusion_matrix": [
     [
-      15,
+      5,
       0,
       0,
-      0
-    ],
-    [
       0,
-      15,
       0,
       0
     ],
     [
       0,
+      3,
       0,
-      15,
+      0,
+      2,
+      0
+    ],
+    [
+      0,
+      0,
+      4,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      4,
+      0,
+      0
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      3,
       0
     ],
     [
       0,
       0,
       0,
-      15
+      0,
+      0,
+      5
     ]
   ],
-  "fault_recall": 1.0,
-  "false_positive_rate": 0.0,
-  "missed_fault_windows": 0,
-  "roc_auc": 1.0,
-  "pr_auc": 1.0,
+  "fault_recall": 0.96,
+  "false_positive_rate": 0.2,
+  "missed_fault_windows": 1,
+  "roc_auc": 0.88,
+  "pr_auc": 0.9549333333333333,
   "source": "SIMULATED",
-  "model_sha256": "d6dd08e4f1e791af5f953708be1fb0a9d78764e058f1924fd0dcd26102916f90"
+  "model_sha256": "de44dac6cec3734f01c02aa238f6a81b031be92a179aab90835b09f359284eb9"
 }

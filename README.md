@@ -1,6 +1,6 @@
 # SentinelDAQ
 
-Arduino-based machine condition monitoring: sensors → Uno → USB → Python,
+Arduino-based tank & environmental monitoring: sensors → Uno → USB → Python,
 with a future host-controlled LED/buzzer alarm.
 
 ## Status
@@ -38,7 +38,7 @@ and verification commands, see the [operating guide](docs/OPERATING-GUIDE.md).
 ## Repository
 
 ```text
-firmware/                 PlatformIO binary, CSV and optional edge builds
+firmware/                 PlatformIO binary and CSV debug builds
   include/                configuration, fixed-width types and protocol
   src/                    sensors, acquisition, communication, actuators
 python/sentinel/          DAQ, DSP, ML, storage, API, dashboard, CLI
@@ -56,12 +56,15 @@ tests/                    protocol, DSP, storage, ML and integration tests
 
 ## Roadmap and phase gate
 
-0 foundation → 1 vibration slice → 2 deterministic sampling → 3 transport →
+0 foundation → 1 ultrasonic slice → 2 deterministic sampling → 3 transport →
 4 complete sensing → 5 robust DAQ/storage → 6 signal processing → 7 dataset →
 8 grouped ML research → 9 live inference → 10 alarm control → 11 API/dashboard →
-12 verification → 13 portfolio → 14 optional edge classifier.
+12 verification → 13 portfolio → 14 deferred (stepper/IR reserved pins only).
 
 Software across phases was authorized, with simulation selected until hardware
 details are available. Physical acceptance remains phase-by-phase; see
-[phase coverage](docs/PHASE-STATUS.md). See the original brief in
-[docs/project-brief.md](docs/project-brief.md).
+[phase coverage](docs/PHASE-STATUS.md). The sensor set was pivoted from motor/
+vibration monitoring to tank/environmental monitoring — see
+[ADR-008](docs/decisions/ADR-008-sensor-set-pivot.md). The original brief in
+[docs/project-brief.md](docs/project-brief.md) is a historical record of how
+the project started and no longer describes the current system.

@@ -104,7 +104,7 @@ def train(root, output, simulated=False, seed=42):
         report["batch_ms_per_window"] = latency
         reports[name] = report
         models[name] = model
-    threshold_risk = np.minimum(1, np.max(vx[:, [FEATURE_NAMES.index(f"{a}_rms") for a in "xyz"]], axis=1)/0.25)
+    threshold_risk = np.minimum(1, vx[:, FEATURE_NAMES.index("level_agreement_abs_mean")]/15.0)
     reports["threshold"] = metrics(vy, np.where(threshold_risk >= 0.8, "ANOMALY", "NORMAL"), threshold_risk)
     # Choose supervised candidate by fault recall, then false positives, then simpler model.
     chosen = max(("logistic", "tree", "forest"), key=lambda n: (
@@ -115,7 +115,7 @@ def train(root, output, simulated=False, seed=42):
                 "simulated": simulated, "seed": seed, "splits": splits, "fs": rates.pop(),
                 "dataset_sha256": hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest(),
                 "window": json.loads(windows.pop()),
-                "pipeline": "dc-remove-hann-v1"}
+                "pipeline": "level-ambient-slope-v1"}
     joblib.dump(artifact, output / "model.joblib")
     (output / "splits.json").write_text(json.dumps(splits, indent=2))
     report = {"source": "SIMULATED" if simulated else "PHYSICAL", "selected": chosen,

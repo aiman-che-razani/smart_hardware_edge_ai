@@ -12,18 +12,22 @@ def main():
         sub = commands.add_parser(name)
         sub.add_argument("--seconds", type=float, default=24)
         sub.add_argument("--condition", default="CYCLE" if name == "simulate" else "NORMAL")
-        sub.add_argument("--fs", type=int, choices=[100,800], default=800)
+        sub.add_argument("--fs", type=int, choices=[1], default=1)
         sub.add_argument("--model", type=Path)
-        sub.add_argument("--window-seconds", type=float, default=1.0)
+        sub.add_argument("--window-seconds", type=float, default=30)
         sub.add_argument("--overlap", type=float, default=0.5)
         sub.add_argument("--warning", type=float, default=0.5)
         sub.add_argument("--fault", type=float, default=0.8)
         sub.add_argument("--recovery", type=float, default=0.3)
         sub.add_argument("--persistence", type=int, default=3)
         sub.add_argument("--recovery-windows", type=int, default=5)
-        sub.add_argument("--machine", default="rig-1")
+        sub.add_argument("--machine", default="tank-1")
         sub.add_argument("--notes", default="")
         sub.add_argument("--metadata-json", type=Path)
+        sub.add_argument("--distance-empty-mm", type=int, default=1000)
+        sub.add_argument("--distance-full-mm", type=int, default=50)
+        sub.add_argument("--water-dry-raw", type=int, default=200)
+        sub.add_argument("--water-wet-raw", type=int, default=800)
         if name == "simulate":
             sub.add_argument("--realtime", action="store_true")
             sub.add_argument("--seed", type=int, default=42)
@@ -31,10 +35,10 @@ def main():
             sub.add_argument("--corrupt-every", type=int, default=0)
         else:
             sub.add_argument("--port", required=True)
-            sub.add_argument("--baud", type=int, default=500000)
+            sub.add_argument("--baud", type=int, default=115200)
     sub = commands.add_parser("dataset", help="Generate separate labelled SYNTHETIC runs for testing")
     sub.add_argument("--runs", type=int, default=5)
-    sub.add_argument("--seconds", type=float, default=8)
+    sub.add_argument("--seconds", type=float, default=90)
     sub = commands.add_parser("train")
     sub.add_argument("--output", type=Path, required=True)
     sub.add_argument("--simulated", action="store_true")
@@ -70,7 +74,7 @@ def main():
         if args.runs < 3 or args.seconds < 2:
             parser.error("dataset needs >=3 runs/class and >=2 seconds/run")
         result = []
-        for condition in ("NORMAL", "IMBALANCE_LOW", "IMBALANCE_HIGH", "LOOSE_MOUNT"):
+        for condition in ("NORMAL", "LOW_WATER", "OVERFLOW", "RAPID_DRAIN", "SENSOR_MISMATCH", "ENVIRONMENTAL_ANOMALY"):
             for number in range(args.runs):
                 result.append(run(args.data, args.seconds, condition, seed=1000+number+len(result)*7))
     elif args.command == "train":

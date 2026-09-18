@@ -1,5 +1,16 @@
 # SentinelDAQ — Arduino-Based Intelligent Condition Monitoring System
 
+> **Historical document.** This is the original brief that started the project,
+> written for a motor/vibration condition-monitoring system built around an
+> ADXL345, INA219 and DS18B20. That hardware was never owned; the actual BOM
+> on hand (HC-SR04, water-level module, DHT, thermistor, photoresistor) led to
+> a pivot to tank/environmental monitoring — see
+> [ADR-008](decisions/ADR-008-sensor-set-pivot.md). This file is kept as-is for
+> the historical record of how the project started; it does not describe the
+> current system. See [requirements.md](requirements.md),
+> [architecture/system.md](architecture/system.md) and
+> [protocol/v1.md](protocol/v1.md) for the current design.
+
 Act as a senior embedded systems, electronics, signal-processing, data-engineering, machine-learning, and backend engineer.
 
 I want you to help me design and build a complete portfolio engineering project called:

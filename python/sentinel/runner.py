@@ -16,12 +16,13 @@ LOG = logging.getLogger(__name__)
 ALARM_VALUES = {"NORMAL": 0, "WARNING": 1, "FAULT": 2, "UNKNOWN": 3}
 
 
-def run(root, duration=24, condition="CYCLE", port=None, fs=800, baud=500000,
+def run(root, duration=24, condition="CYCLE", port=None, fs=1, baud=115200,
         realtime=False, seed=42, drop_every=0, corrupt_every=0, model=None,
-        window_seconds=1.0, overlap=0.5, warning=0.5, fault=0.8, recovery=0.3,
-        persistence=3, recovery_windows=5, machine="rig-1", notes="", metadata_json=None):
-    if duration <= 0 or fs not in (100, 800):
-        raise ValueError("duration must be positive; supported sampling rates are 100/800 Hz")
+        window_seconds=30, overlap=0.5, warning=0.5, fault=0.8, recovery=0.3,
+        persistence=3, recovery_windows=5, machine="tank-1", notes="", metadata_json=None,
+        distance_empty_mm=1000, distance_full_mm=50, water_dry_raw=200, water_wet_raw=800):
+    if duration <= 0 or fs != 1:
+        raise ValueError("duration must be positive; the firmware reports at a fixed 1 Hz")
     simulated = port is None
     operator_metadata = json.loads(Path(metadata_json).read_text()) if metadata_json else {}
     if not isinstance(operator_metadata, dict):
@@ -29,13 +30,16 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=800, baud=500000,
     store = Store(root)
     run_id = store.start(condition, fs, simulated, {"protocol": 1, "firmware": "0.1.0",
         "source": "SIMULATED" if simulated else "PHYSICAL", "seed": seed if simulated else None,
-        "baud": baud, "acceleration_g_per_lsb": 0.0039, "shunt_ohms": 0.1,
+        "baud": baud,
+        "distance_empty_mm": distance_empty_mm, "distance_full_mm": distance_full_mm,
+        "water_dry_raw": water_dry_raw, "water_wet_raw": water_wet_raw,
         "window": {"seconds":window_seconds,"overlap":overlap},
         "operator_notes":notes,"operator_metadata":operator_metadata}, machine=machine)
     try:
         pipeline = Pipeline(store, fs, model, simulated, overlap, window_seconds,
             {"warning":warning,"fault":fault,"recovery":recovery,
-             "persistence":persistence,"recovery_windows":recovery_windows})
+             "persistence":persistence,"recovery_windows":recovery_windows},
+            distance_empty_mm, distance_full_mm, water_dry_raw, water_wet_raw)
     except Exception:
         store.close("FAILED")
         raise
@@ -127,9 +131,9 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=800, baud=500000,
                     if len(payload) != CONFIG.size:
                         parser.errors += 1
                         continue
-                    boot, rate, scale_ug, shunt_milliohm = CONFIG.unpack(payload)
-                    if rate != fs or scale_ug == 0 or shunt_milliohm == 0:
-                        raise ValueError("device configuration mismatch; set correct --fs and check sensor calibration")
+                    boot, report_interval_ms, _ultrasonic_ms, _ambient_ms = CONFIG.unpack(payload)
+                    if report_interval_ms == 0 or round(1000/report_interval_ms) != fs:
+                        raise ValueError("device configuration mismatch; set correct --fs for the firmware's report interval")
                     if configured_boot is not None and boot != configured_boot:
                         pipeline.continuity.resets += 1
                         pipeline.disconnect()
@@ -137,7 +141,6 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=800, baud=500000,
                         stream_started = False
                         commands.pending = None
                     configured_boot = boot
-                    pipeline.scale, pipeline.shunt_ohms = scale_ug/1e6, shunt_milliohm/1000
                     configured = True
                 elif kind == Kind.ACK:
                     result = commands.receive(payload)

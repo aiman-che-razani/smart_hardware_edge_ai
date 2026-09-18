@@ -33,19 +33,19 @@ void status() {
 #ifndef SENTINEL_CSV
     uint8_t payload[10];
     memcpy(payload,&bootId,4);
-    uint16_t rate=sentinel::kRate, scale=sentinel::kAccelerationUg, shunt=sentinel::kShuntMilliohm;
-    memcpy(payload+4,&rate,2); memcpy(payload+6,&scale,2); memcpy(payload+8,&shunt,2);
+    uint16_t report=sentinel::kReportIntervalMs, ultrasonicMs=sentinel::kUltrasonicIntervalMs, ambientMs=sentinel::kAmbientIntervalMs;
+    memcpy(payload+4,&report,2); memcpy(payload+6,&ultrasonicMs,2); memcpy(payload+8,&ambientMs,2);
     frame(STATUS,payload,10);
 #endif
 }
 bool send(const Sample& s) {
 #ifdef SENTINEL_CSV
-    // Debug only: blocking formatting is intentionally excluded from the 800 Hz build.
+    // Debug only: blocking formatting is intentionally excluded from the binary build.
     Serial.print(F("D,")); Serial.print(s.boot); Serial.print(',');
     Serial.print(s.sequence); Serial.print(','); Serial.print(s.timestamp); Serial.print(',');
-    Serial.print(s.ax); Serial.print(','); Serial.print(s.ay); Serial.print(','); Serial.print(s.az); Serial.print(',');
-    Serial.print(s.shunt); Serial.print(','); Serial.print(s.temperature); Serial.print(',');
-    Serial.print(s.currentAge); Serial.print(','); Serial.print(s.temperatureAge); Serial.print(','); Serial.println(s.flags);
+    Serial.print(s.distance); Serial.print(','); Serial.print(s.distanceAge); Serial.print(',');
+    Serial.print(s.waterLevel); Serial.print(','); Serial.print(s.thermistor); Serial.print(','); Serial.print(s.light); Serial.print(',');
+    Serial.print(s.ambientTemperature); Serial.print(','); Serial.print(s.ambientHumidity); Serial.print(','); Serial.print(s.ambientAge); Serial.print(','); Serial.println(s.flags);
     return true;
 #else
     return frame(DATA,&s,sizeof(s));

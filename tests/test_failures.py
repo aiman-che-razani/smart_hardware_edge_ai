@@ -1,23 +1,23 @@
 import dataclasses
 import json
 import pytest
-from sentinel.acquisition.protocol import Sample, OVERRUN
+from sentinel.acquisition.protocol import Sample, DHT_CHECKSUM_ERROR
 from sentinel.pipeline import Pipeline
 from sentinel.storage.database import Store, audit
 from sentinel.benchmark import analyze
 from sentinel.runner import run
 
 
-def test_invalid_sensor_and_fifo_overrun_clear_windows(tmp_path):
+def test_invalid_sensor_and_dht_checksum_error_clear_windows(tmp_path):
     store=Store(tmp_path)
-    store.start('NORMAL',800,True)
+    store.start('NORMAL',1,True)
     pipeline=Pipeline(store)
-    for i in range(799):
-        pipeline.accept(Sample(1,i,i*1250,0,0,256,0,480,0,0,7),i*1250000)
-    pipeline.accept(Sample(1,799,998750,0,0,256,0,480,0,0,6),998750000)
+    for i in range(29):
+        pipeline.accept(Sample(1,i,i*1000,500,0,500,500,500,240,500,0,3),i*1_000_000_000)
+    pipeline.accept(Sample(1,29,29000,500,0,500,500,500,240,500,0,2),29_000_000_000)
     assert not pipeline.windows.records
     assert pipeline.state.state=='UNKNOWN'
-    pipeline.accept(Sample(1,800,1000000,0,0,256,0,480,0,0,7|OVERRUN),1000000000)
+    pipeline.accept(Sample(1,30,30000,500,0,500,500,500,240,500,0,3|DHT_CHECKSUM_ERROR),30_000_000_000)
     assert len(pipeline.windows.records)==1
     pipeline.disconnect()
     assert not pipeline.windows.records
@@ -37,7 +37,7 @@ def test_benchmark_simulation_label_and_rate(tmp_path):
     run(tmp_path,2,'NORMAL')
     report=analyze(tmp_path)
     assert report['source']=='SIMULATED'
-    assert report['readout_sequence_rate_hz']==800
+    assert report['readout_sequence_rate_hz']==1
     assert report['false_alarm_events']==0
 
 
@@ -56,7 +56,7 @@ def test_locked_live_status_does_not_stop_acquisition(tmp_path, monkeypatch):
         return original(path,target)
     monkeypatch.setattr(Path,'replace',locked)
     result=run(tmp_path,2,'NORMAL')
-    assert result['samples']==1600
+    assert result['samples']==2
     assert result['acquisition_status']=='COMPLETE'
     assert result['status_publish_skips']>0
     assert not audit(tmp_path)['unfinished_runs']

@@ -7,11 +7,11 @@ import time
 MAGIC = b"\xa5\x5a"
 VERSION = 1
 MAX_PAYLOAD = 40
-DATA = struct.Struct("<IIIhhhh hHHB")
+DATA = struct.Struct("<IIIHHHHHhHHB")
 CONFIG = struct.Struct("<IHHH")
 ACK = struct.Struct("<HBB")
 COMMAND = struct.Struct("<HB")
-ACC_VALID, CURRENT_VALID, TEMP_VALID, OVERRUN = 1, 2, 4, 8
+DISTANCE_VALID, AMBIENT_VALID, DHT_CHECKSUM_ERROR = 1, 2, 4
 
 
 class Kind(IntEnum):
@@ -91,14 +91,15 @@ class Parser:
 class Sample:
     boot: int
     sequence: int
-    timestamp_us: int
-    ax: int
-    ay: int
-    az: int
-    shunt_raw: int
-    temp_raw: int
-    current_age_ms: int
-    temp_age_ms: int
+    timestamp_ms: int
+    distance_mm: int
+    distance_age_ms: int
+    water_level_raw: int
+    thermistor_raw: int
+    light_raw: int
+    ambient_temp_c_ds: int
+    ambient_humidity_ds: int
+    ambient_age_ms: int
     flags: int
 
     @classmethod
@@ -131,7 +132,7 @@ class Continuity:
         if delta >= 0x80000000:
             self.out_of_order += 1
             return False, False
-        dt = (sample.timestamp_us - p.timestamp_us) & 0xFFFFFFFF
+        dt = (sample.timestamp_ms - p.timestamp_ms) & 0xFFFFFFFF
         if dt >= 0x80000000:
             self.out_of_order += 1
             return False, False

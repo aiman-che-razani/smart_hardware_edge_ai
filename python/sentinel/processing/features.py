@@ -1,54 +1,35 @@
 import numpy as np
-from scipy import signal
 
-METRICS = ("rms", "peak_to_peak", "std", "variance", "skewness", "kurtosis", "crest_factor",
-           "dominant_hz", "dominant_amplitude", "spectral_energy", "spectral_centroid",
-           "band_0_50", "band_50_150", "band_150_nyquist", "harmonic_ratio")
-FEATURE_NAMES = [f"{axis}_{name}" for axis in "xyz" for name in METRICS]
-
-
-def highpass(values, fs, cutoff=5.0):
-    if not 0 < cutoff < fs / 2:
-        raise ValueError("cutoff outside Nyquist interval")
-    return signal.sosfiltfilt(signal.butter(3, cutoff, btype="highpass", fs=fs, output="sos"), values, axis=0)
+CHANNELS = ("level_ultrasonic_pct", "level_water_pct", "ambient_temp_c",
+            "ambient_humidity_pct", "thermistor_temp_c", "light_pct")
+METRICS = ("mean", "slope_per_s", "range", "std")
+FEATURE_NAMES = [f"{channel}_{metric}" for channel in CHANNELS for metric in METRICS] + [
+    "level_agreement_abs_mean", "level_agreement_abs_max", "level_ultrasonic_min_slope_per_s",
+]
 
 
-def spectrum(values, fs):
-    x = np.asarray(values, dtype=float)
-    if x.ndim != 1 or len(x) < 8 or fs <= 0 or not np.isfinite(x).all():
-        raise ValueError("spectrum requires >=8 finite samples and positive rate")
-    window = signal.windows.hann(len(x), sym=False)
-    fft = np.fft.rfft((x - x.mean()) * window)
-    amplitude = np.abs(fft) / window.sum()
-    psd = abs(fft) ** 2 / (fs * np.sum(window ** 2))
-    endpoint = -1 if len(x) % 2 == 0 else None
-    amplitude[1:endpoint] *= 2
-    psd[1:endpoint] *= 2
-    return np.fft.rfftfreq(len(x), 1 / fs), amplitude, psd
+def _channel_metrics(t, y):
+    mean = float(np.mean(y))
+    slope = float(np.polyfit(t, y, 1)[0]) if len(t) >= 2 and t[-1] != t[0] else 0.0
+    return [mean, slope, float(np.ptp(y)), float(np.std(y))]
 
 
-def extract(values, fs):
-    x = np.asarray(values, dtype=float)
-    if x.ndim != 2 or x.shape[1] != 3 or len(x) < 8 or not np.isfinite(x).all():
-        raise ValueError("expected finite N x 3 acceleration")
+def extract(window, fs):
+    """window: a list of dicts with the CHANNELS keys already unit-converted (see pipeline.py)."""
+    if len(window) < 2:
+        raise ValueError("expected at least 2 records")
+    t = np.arange(len(window), dtype=float) / fs
     result = {}
-    for axis, values in zip("xyz", x.T):
-        y = values - values.mean()
-        rms = float(np.sqrt(np.mean(y ** 2)))
-        freq, amplitude, psd = spectrum(y, fs)
-        power = psd * fs / len(y)
-        total = float(power.sum())
-        peak = int(np.argmax(amplitude[1:]) + 1) if rms > 1e-12 else 0
-        dominant = float(freq[peak])
-        harmonic = int(np.argmin(abs(freq - 2 * dominant)))
-        metrics = [rms, float(np.ptp(y)), rms, rms*rms,
-                   float(np.mean(y ** 3) / rms ** 3) if rms > 1e-12 else 0.0,
-                   float(np.mean(y ** 4) / rms ** 4) if rms > 1e-12 else 0.0,
-                   float(np.max(abs(y)) / rms) if rms > 1e-12 else 0.0,
-                   dominant, float(amplitude[peak]), total,
-                   float(np.dot(freq, power) / total) if total > 1e-24 else 0.0,
-                   float(power[freq < 50].sum()), float(power[(freq >= 50) & (freq < 150)].sum()),
-                   float(power[freq >= 150].sum()),
-                   float(amplitude[harmonic] / amplitude[peak]) if peak and 2*dominant <= fs/2 else 0.0]
-        result.update(zip((f"{axis}_{name}" for name in METRICS), metrics))
+    for channel in CHANNELS:
+        y = np.asarray([r[channel] for r in window], dtype=float)
+        if not np.isfinite(y).all():
+            raise ValueError(f"{channel}: expected finite values")
+        result.update(zip((f"{channel}_{m}" for m in METRICS), _channel_metrics(t, y)))
+    ultrasonic = np.asarray([r["level_ultrasonic_pct"] for r in window], dtype=float)
+    water = np.asarray([r["level_water_pct"] for r in window], dtype=float)
+    agreement = np.abs(ultrasonic - water)
+    result["level_agreement_abs_mean"] = float(np.mean(agreement))
+    result["level_agreement_abs_max"] = float(np.max(agreement))
+    step_slopes = np.diff(ultrasonic) / np.diff(t)
+    result["level_ultrasonic_min_slope_per_s"] = float(np.min(step_slopes)) if len(step_slopes) else 0.0
     return result

@@ -1,12 +1,30 @@
-"""Synthetic rotating-signal fixture. Never represents measured machine behavior."""
+"""Synthetic tank/environmental fixture. Never represents measured tank behavior."""
 import math
 import random
-import struct
+
 from .protocol import Sample, Kind, CONFIG, ACK, COMMAND, encode, Parser
+
+# Mirrors the calibration defaults in pipeline.py, so a simulated run's raw
+# fields convert back to plausible physical values.
+DISTANCE_EMPTY_MM, DISTANCE_FULL_MM = 1000, 50
+WATER_DRY_RAW, WATER_WET_RAW = 200, 800
+
+
+def _level_fraction(t, condition):
+    """0 = empty tank, 1 = full tank."""
+    if condition == "LOW_WATER":
+        return 0.06
+    if condition == "OVERFLOW":
+        return 0.98
+    if condition == "RAPID_DRAIN":
+        return max(0.05, 0.75 - 0.02 * t)  # ~1.2%/s unexplained drain: a leak proxy.
+    if condition == "SENSOR_MISMATCH":
+        return 0.5
+    return 0.55 + 0.05 * math.sin(2 * math.pi * t / 120)  # NORMAL / ENVIRONMENTAL_ANOMALY.
 
 
 class Simulator:
-    def __init__(self, fs=800, condition="NORMAL", seed=42, drop_every=0, corrupt_every=0):
+    def __init__(self, fs=1, condition="NORMAL", seed=42, drop_every=0, corrupt_every=0):
         self.fs, self.condition = fs, condition
         self.rng = random.Random(seed)
         self.boot = self.rng.randrange(1, 2**32)
@@ -17,9 +35,10 @@ class Simulator:
         self.command_parser = Parser()
 
     def config(self):
-        return encode(Kind.STATUS, CONFIG.pack(self.boot, self.fs, 3900, 100))
+        report_ms = round(1000 / self.fs)
+        return encode(Kind.STATUS, CONFIG.pack(self.boot, report_ms, 150, 2000))
 
-    def read(self, count=80):
+    def read(self, count=1):
         output = bytearray()
         if not self.streaming:
             return b""
@@ -28,20 +47,39 @@ class Simulator:
             t = i / self.fs
             condition = self.condition
             if condition == "CYCLE":
-                condition = "NORMAL" if int(t / 8) % 3 != 1 else "IMBALANCE_HIGH"
-            amplitude = {"NORMAL": 0.025, "IMBALANCE_LOW": 0.12, "IMBALANCE_HIGH": 0.45,
-                         "LOOSE_MOUNT": 0.18, "PARTIAL_OBSTRUCTION": 0.22,
-                         "INCREASED_LOAD": 0.15, "SPEED_VARIATION": 0.08}.get(condition)
-            if amplitude is None:
-                raise ValueError("unknown synthetic condition")
-            phase = 2 * math.pi * (30*t + (0.4*t*t if condition == "SPEED_VARIATION" else 0))
-            x = amplitude * math.sin(phase) + self.rng.gauss(0, 0.005)
-            if condition == "LOOSE_MOUNT" and i % 97 == 0:
-                x += 0.9
-            values = [round(x/0.0039), round(amplitude*0.5*math.sin(phase+0.8)/0.0039),
-                      round((1+amplitude*0.3*math.sin(2*phase))/0.0039)]
-            sample = Sample(self.boot, i & 0xFFFFFFFF, round(t*1e6) & 0xFFFFFFFF,
-                            *values, 1200, 480, round(t*1000)%40, round(t*1000)%1000, 7)
+                block = int(t / 8) % 3
+                local_t = t % 8
+                condition = "NORMAL" if block != 1 else "RAPID_DRAIN"
+            else:
+                local_t = t
+
+            fraction = _level_fraction(local_t, condition)
+            noise = self.rng.gauss(0, 0.01)
+            distance_mm = round(DISTANCE_EMPTY_MM - (fraction + noise) *
+                                 (DISTANCE_EMPTY_MM - DISTANCE_FULL_MM))
+            distance_mm = max(0, min(65535, distance_mm))
+
+            water_fraction = fraction if condition != "SENSOR_MISMATCH" else max(0, fraction - 0.25)
+            water_level_raw = round(WATER_DRY_RAW + (water_fraction + noise) *
+                                     (WATER_WET_RAW - WATER_DRY_RAW))
+            water_level_raw = max(0, min(1023, water_level_raw))
+
+            if condition == "ENVIRONMENTAL_ANOMALY":
+                ambient_temp_c_ds = round((40 + self.rng.gauss(0, 1)) * 10)
+                ambient_humidity_ds = round((85 + self.rng.gauss(0, 2)) * 10)
+                thermistor_raw = 380
+                light_raw = 900
+            else:
+                ambient_temp_c_ds = round((24 + self.rng.gauss(0, 0.3)) * 10)
+                ambient_humidity_ds = round((50 + self.rng.gauss(0, 1)) * 10)
+                thermistor_raw = 512
+                light_raw = 512
+
+            sample = Sample(self.boot, i & 0xFFFFFFFF, round(t * 1000) & 0xFFFFFFFF,
+                             distance_mm, round(t * 1000) % 150,
+                             water_level_raw, thermistor_raw, light_raw,
+                             ambient_temp_c_ds, ambient_humidity_ds, round(t * 1000) % 2000,
+                             3)  # flags: DISTANCE_VALID | AMBIENT_VALID
             frame = sample.encode()
             self.sequence += 1
             if self.drop_every and self.sequence % self.drop_every == 0:

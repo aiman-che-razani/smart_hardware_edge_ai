@@ -14,8 +14,9 @@ class Inference:
 
     def score(self, features):
         if self.artifact is None:
-            # Engineering demo score, not a calibrated fault probability.
-            return min(1.0, max(features[f"{a}_rms"] for a in "xyz") / 0.25)
+            # Engineering demo score, not a calibrated fault probability:
+            # normalized two-sensor level disagreement, capped at 15 points.
+            return min(1.0, features["level_agreement_abs_mean"] / 15.0)
         x = [[features[name] for name in FEATURE_NAMES]]
         model = self.artifact["model"]
         if self.artifact["kind"] == "isolation":

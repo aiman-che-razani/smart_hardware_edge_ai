@@ -4,16 +4,13 @@ Owner: project engineer. All mitigation checks remain open until evidence exists
 
 | Risk | Impact / priority | Mitigation and verification |
 |---|---|---|
-| Unknown ADXL345 voltage interface | Sensor damage / high | Obtain schematic, check rails and logic translation before wiring |
-| Motor stall or transient exceeds shunt/supply rating | Heat/damage / high | Confirm stall current, fuse, shunt power and suppression |
-| Rotating part escapes / exposed fixture | Injury / high | Guard and inspect fixture; no improvised running fault modifications |
-| CSV exceeds serial capacity | Silent sample loss / high | Begin at 100 Hz; byte budget and binary measurement later |
-| Blocking temperature/I2C/serial activity | Vibration gaps / high | Async conversion, bus timeouts, bounded writes, FIFO/loss counters |
+| Water contacting the Uno, breadboard or USB connection | Sensor/board damage / high | Route the water-level probe's leads away from logic wiring; keep the tank and electronics physically separated |
+| Unknown module supply voltage (water-level, DHT) | Sensor/board damage / medium | Confirm each module's rated voltage against its datasheet before wiring to Uno 5V |
+| Blocking DHT read stalls the main loop | Missed ultrasonic pings / medium | DHT read is bounded (~ms via SimpleDHT) and polled at most every 2s; confirm actual blocking duration on real hardware |
 | SRAM/stack exhaustion | Reset/corruption / high | Static buffers, build-size ledger, runtime headroom testing |
-| Ground noise / long SPI wiring | Corruption / medium | Short wiring, separate motor returns, decoupling and analyzer checks |
-| Aliasing or weak sensor mounting | Misleading spectrum / high | Review bandwidth, rigid mounting and repeatability before interpretation |
+| Uncalibrated water-level/thermistor readings | Misleading level/temperature values / high | Measure the actual dry/wet ADC range and thermistor part before trusting `pipeline.py`'s placeholder constants |
 | USB reset/disconnect or timestamp wrap | False continuity / high | Sessions, boot records, rollover/reconnect tests |
-| Stale current/temp shown as fresh | Misleading features / medium | Validity, age and independent update times |
+| Stale DHT reading shown as fresh | Misleading features / medium | Validity, age (4s threshold) and independent update times |
 | Overlapping-run ML leakage | Inflated results / high | Split by run; fit transforms on train only |
 | Lost commands / false alarms | Unreliable indication / high | ACK/retry, idempotency, hysteresis and explicit communication state |
 | Python 3.9 scientific dependency support | Installation friction / medium | Move to maintained Python before later dependencies |

@@ -8,18 +8,18 @@ from sentinel.acquisition.simulator import Simulator
 
 
 def sample(**kwargs):
-    return dataclasses.replace(Sample(1, 1, 1250, -1, 2, 256, 1200, 480, 0, 0, 7), **kwargs)
+    return dataclasses.replace(Sample(1, 1, 1250, 500, 2, 256, 512, 700, 240, 500, 10, 3), **kwargs)
 
 
 def test_crc_reference_and_data_layout():
     assert crc16(b"123456789") == 0x29B1
-    assert DATA.size == 27
+    assert DATA.size == 29
     frame = sample().encode()
-    assert len(frame) == 34
+    assert len(frame) == 36
     assert Sample.decode(Parser().feed(frame)[0][1]) == sample()
 
 
-@pytest.mark.parametrize("split", range(35))
+@pytest.mark.parametrize("split", range(37))
 def test_every_fragment_boundary(split):
     parser = Parser()
     frame = sample().encode()
@@ -41,11 +41,11 @@ def test_corruption_unknown_oversized_and_timeout_recovery():
 
 def test_continuity_wrap_reset_gap_duplicate():
     c = Continuity()
-    assert c.accept(sample(sequence=0xFFFFFFFF,timestamp_us=0xFFFFFF00)) == (True,True)
-    assert c.accept(sample(sequence=0,timestamp_us=994)) == (True,False)
-    assert c.accept(sample(sequence=2,timestamp_us=3494)) == (True,True)
+    assert c.accept(sample(sequence=0xFFFFFFFF,timestamp_ms=0xFFFFFF00)) == (True,True)
+    assert c.accept(sample(sequence=0,timestamp_ms=994)) == (True,False)
+    assert c.accept(sample(sequence=2,timestamp_ms=3494)) == (True,True)
     assert c.gaps == 1
-    assert c.accept(sample(sequence=2,timestamp_us=3494))[0] is False
+    assert c.accept(sample(sequence=2,timestamp_ms=3494))[0] is False
     assert c.accept(sample(boot=2))[1]
     assert c.resets == 1
 

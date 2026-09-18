@@ -1,0 +1,439 @@
+{
+  "source": "SIMULATED",
+  "selected": "logistic",
+  "selection": "validation fault recall, false positives, simplicity",
+  "validation": {
+    "logistic": {
+      "classification": {
+        "IMBALANCE_HIGH": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "IMBALANCE_LOW": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "LOOSE_MOUNT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "NORMAL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        }
+      },
+      "labels": [
+        "IMBALANCE_HIGH",
+        "IMBALANCE_LOW",
+        "LOOSE_MOUNT",
+        "NORMAL"
+      ],
+      "confusion_matrix": [
+        [
+          15,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          15,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15
+        ]
+      ],
+      "fault_recall": 1.0,
+      "false_positive_rate": 0.0,
+      "missed_fault_windows": 0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "batch_ms_per_window": 0.009523333333333328
+    },
+    "tree": {
+      "classification": {
+        "IMBALANCE_HIGH": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "IMBALANCE_LOW": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "LOOSE_MOUNT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "NORMAL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        }
+      },
+      "labels": [
+        "IMBALANCE_HIGH",
+        "IMBALANCE_LOW",
+        "LOOSE_MOUNT",
+        "NORMAL"
+      ],
+      "confusion_matrix": [
+        [
+          15,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          15,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15
+        ]
+      ],
+      "fault_recall": 1.0,
+      "false_positive_rate": 0.0,
+      "missed_fault_windows": 0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "batch_ms_per_window": 0.003269999999999662
+    },
+    "forest": {
+      "classification": {
+        "IMBALANCE_HIGH": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "IMBALANCE_LOW": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "LOOSE_MOUNT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "NORMAL": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 15.0
+        },
+        "accuracy": 1.0,
+        "macro avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 60.0
+        }
+      },
+      "labels": [
+        "IMBALANCE_HIGH",
+        "IMBALANCE_LOW",
+        "LOOSE_MOUNT",
+        "NORMAL"
+      ],
+      "confusion_matrix": [
+        [
+          15,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          15,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          15,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          15
+        ]
+      ],
+      "fault_recall": 1.0,
+      "false_positive_rate": 0.0,
+      "missed_fault_windows": 0,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "batch_ms_per_window": 0.08251500000000152
+    },
+    "isolation": {
+      "classification": {
+        "ANOMALY": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "IMBALANCE_HIGH": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "IMBALANCE_LOW": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "LOOSE_MOUNT": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "NORMAL": {
+          "precision": 1.0,
+          "recall": 0.8,
+          "f1-score": 0.8888888888888888,
+          "support": 15.0
+        },
+        "accuracy": 0.2,
+        "macro avg": {
+          "precision": 0.2,
+          "recall": 0.16,
+          "f1-score": 0.17777777777777776,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 0.25,
+          "recall": 0.2,
+          "f1-score": 0.2222222222222222,
+          "support": 60.0
+        }
+      },
+      "labels": [
+        "ANOMALY",
+        "IMBALANCE_HIGH",
+        "IMBALANCE_LOW",
+        "LOOSE_MOUNT",
+        "NORMAL"
+      ],
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          15,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          15,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          15,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          0,
+          0,
+          12
+        ]
+      ],
+      "fault_recall": 1.0,
+      "false_positive_rate": 0.2,
+      "missed_fault_windows": 0,
+      "roc_auc": 1.0,
+      "pr_auc": 0.9999999999999999,
+      "batch_ms_per_window": 0.05158000000000292
+    },
+    "threshold": {
+      "classification": {
+        "ANOMALY": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
+        },
+        "IMBALANCE_HIGH": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "IMBALANCE_LOW": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "LOOSE_MOUNT": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 15.0
+        },
+        "NORMAL": {
+          "precision": 0.3333333333333333,
+          "recall": 1.0,
+          "f1-score": 0.5,
+          "support": 15.0
+        },
+        "accuracy": 0.25,
+        "macro avg": {
+          "precision": 0.06666666666666667,
+          "recall": 0.2,
+          "f1-score": 0.1,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 0.08333333333333333,
+          "recall": 0.25,
+          "f1-score": 0.125,
+          "support": 60.0
+        }
+      },
+      "labels": [
+        "ANOMALY",
+        "IMBALANCE_HIGH",
+        "IMBALANCE_LOW",
+        "LOOSE_MOUNT",
+        "NORMAL"
+      ],
+      "confusion_matrix": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          15,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          15
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          15
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          15
+        ]
+      ],
+      "fault_recall": 0.3333333333333333,
+      "false_positive_rate": 0.0,
+      "missed_fault_windows": 30,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0
+    }
+  },
+  "test": "untouched; run evaluate once after selection",
+  "version": "2607822b-b0c3-46e1-bf43-40a5f8efde38"
+}

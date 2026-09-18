@@ -15,7 +15,7 @@ class CSVParser:
                 if not self.discard:
                     try:
                         parts = self.buffer.decode("ascii").strip().split(",")
-                        if len(parts) != 12 or parts[0] != "D":
+                        if len(parts) != 13 or parts[0] != "D":
                             raise ValueError("invalid CSV")
                         samples.append(Sample.decode(DATA.pack(*(int(x) for x in parts[1:]))))
                     except (ValueError, UnicodeError, OverflowError, struct.error):

@@ -22,7 +22,7 @@ While that runs, open another terminal:
 ```
 
 Visit **http://127.0.0.1:8050**. The dashboard shows SIMULATED, a state, DAQ
-counters, XYZ waveforms, X FFT, current, temperature, scores and events. Select
+counters, tank-level traces from both sensors, DHT/thermistor/light, scores and events. Select
 another run for comparison. Parquet flushes every 1600 records, so waveform
 refresh is approximately two seconds at 800 Hz; this is not a hard real-time UI.
 Finished/stale acquisition displays UNKNOWN rather than presenting old NORMAL
@@ -47,32 +47,34 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e '.[dev]'
 .\.venv\Scripts\python.exe -m pytest -q
 $env:PLATFORMIO_CORE_DIR = Join-Path (Get-Location) '.pio'
-.\.venv\Scripts\python.exe -m platformio run --project-dir firmware -e uno -e uno_csv -e uno_edge
+.\.venv\Scripts\python.exe -m platformio run --project-dir firmware -e uno -e uno_csv
 ```
 
-Dependencies: PySerial owns the serial port; NumPy/SciPy perform numerical DSP;
-PyArrow stores columnar raw data; scikit-learn/joblib train and persist small
-models; FastAPI/Uvicorn provide the local API; Dash/Plotly plot the engineering
-views. SQLite is in Python's standard library. OneWire supplies tested bus timing
-primitives; the DS18B20 conversion state machine and CRC checks are explicit in
-our driver. No motor-control service or distributed infrastructure is required.
+Dependencies: PySerial owns the serial port; NumPy performs the slow-signal
+feature math; PyArrow stores columnar raw data; scikit-learn/joblib train and
+persist small models; FastAPI/Uvicorn provide the local API; Dash/Plotly plot
+the engineering views. SQLite is in Python's standard library. Firmware uses
+the SimpleDHT library for the DHT sensor; no SPI/I2C/OneWire remains in the
+design. No distributed infrastructure is required.
 
 ## Synthetic research workflow
 
 Keep labelled research runs separate from changing-condition CYCLE demos.
 
 ```powershell
-.\.venv\Scripts\python.exe -m sentinel --data data/research-new dataset --runs 5 --seconds 8
+.\.venv\Scripts\python.exe -m sentinel --data data/research-new dataset --runs 5 --seconds 90
 .\.venv\Scripts\python.exe -m sentinel --data data/research-new train --simulated --output data/models/new-model
 .\.venv\Scripts\python.exe -m sentinel --data data/research-new evaluate --model-dir data/models/new-model
-.\.venv\Scripts\python.exe -m sentinel --data data/ml-demo simulate --seconds 24 --model data/models/new-model/model.joblib
+.\.venv\Scripts\python.exe -m sentinel --data data/ml-demo simulate --seconds 90 --model data/models/new-model/model.joblib
 ```
 
-These commands create explicitly synthetic NORMAL, IMBALANCE_LOW,
-IMBALANCE_HIGH and LOOSE_MOUNT signals. They test integration, not diagnostic
-accuracy on machinery. Other simulator conditions are available through
-`simulate --condition`. Synthetic current/temperature are simple illustrative
-values, not a thermal/electrical model.
+These commands create explicitly synthetic NORMAL, LOW_WATER, OVERFLOW,
+RAPID_DRAIN, SENSOR_MISMATCH and ENVIRONMENTAL_ANOMALY signals. `--seconds`
+must be at least the window size (30s by default) for a run to produce even
+one feature window — 90s gives a couple. They test integration, not diagnostic
+accuracy on a real tank. Other simulator conditions are available through
+`simulate --condition`. Synthetic ambient/thermistor/light values are simple
+illustrative baselines, not a thermal/hydraulic model.
 
 Training defaults to PHYSICAL records. `--simulated` is mandatory for synthetic
 training, and physical inference refuses synthetic artifacts. Models are local
@@ -97,31 +99,34 @@ a security boundary preventing a researcher from deliberately changing files.
 
 ```powershell
 # Fault injection through actual byte parser:
-.\.venv\Scripts\python.exe -m sentinel --data data/failures simulate --seconds 10 --drop-every 211 --corrupt-every 300
+.\.venv\Scripts\python.exe -m sentinel --data data/failures simulate --seconds 60 --drop-every 20 --corrupt-every 30
 # Change window and operational thresholds:
-.\.venv\Scripts\python.exe -m sentinel --data data/tuning simulate --window-seconds 2 --overlap 0.5 --fault 0.85 --persistence 4
+.\.venv\Scripts\python.exe -m sentinel --data data/tuning simulate --window-seconds 60 --overlap 0.5 --fault 0.85 --persistence 4
 ```
 
-Features use DC removal per axis and Hann spectra. RMS/std/variance describe
-overall fluctuating vibration, peak-to-peak and crest factor reveal extremes,
-Pearson kurtosis/skewness describe impulsiveness/asymmetry, dominant frequency
-and harmonic ratio describe periodicity, and PSD integration describes band
-energy. RMS is AC RMS, not total RMS including gravity. Constant signals return
-zero moments rather than undefined NaN. All acceleration is in g.
+Features are slow-signal statistics per channel (tank level from both sensors,
+DHT temp/humidity, thermistor, light): mean, linear slope (per second), range
+and standard deviation over the window — no FFT, since nothing here is a
+waveform. Two extra features target the two-sensor setup directly: the mean
+and max absolute disagreement between the ultrasonic and water-level readings
+(`level_agreement_abs_*`, feeds `SENSOR_MISMATCH`), and the steepest single-step
+drop in the ultrasonic reading within the window (`level_ultrasonic_min_slope_
+per_s`, feeds `RAPID_DRAIN` — a window-average slope alone would average a
+brief steep drop away).
 
-The optional tested high-pass function is available for investigation; the default
-model pipeline does not apply it. It changes phase/transients and must be versioned
-if enabled. Without RPM measurement, harmonic ratios are not shaft orders.
-Frequency resolution is fs/N: default 800 samples at 800 Hz gives 1 Hz bins.
-One-second windows with 50% overlap update every 0.5 s. Three high-risk windows
-are required for FAULT; five low-risk windows for recovery. This adds latency to
-the initial window fill. Default threshold score is max axis RMS / 0.25 g clipped
-to [0,1], an uncalibrated engineering demo score.
+Default windows are 30 s with 50% overlap, updating every 15 s at the firmware's
+fixed 1 Hz report rate — this adds latency to the initial window fill. Three
+high-risk windows are required for FAULT; five low-risk windows for recovery.
+Default threshold score (used when no trained model is loaded) is the mean
+two-sensor level disagreement divided by 15 percentage points, clipped to
+[0,1] — an uncalibrated engineering demo score, not a calibrated fault
+probability.
 
-Gaps, invalid acceleration, FIFO overrun, disconnect and inconsistent window time
-clear the window/state to UNKNOWN. Latest slow-sensor readings carry ages; current
-older than 200 ms and temperature older than 2 s are stored as null engineering
-values. They are displayed and preserved but are not yet model features.
+Gaps, an invalid ultrasonic/water-level reading, disconnect and inconsistent
+window time clear the window/state to UNKNOWN. DHT readings older than 4s are
+treated as invalid; the plain analog reads (water-level, thermistor,
+photoresistor) are always fresh by construction, since they're read fresh
+each report cycle.
 
 ## Storage, evidence and reports
 
@@ -139,7 +144,7 @@ NORMAL runs. Simulation time is generated; its perfect rate is not hardware
 evidence. The benchmark runs as fast as possible by default: `60` means sixty
 seconds of generated signal, not sixty seconds of wall-clock soak testing.
 Use `simulate --seconds 3600 --realtime` for a one-hour PC soak.
-`profile` measures repeated FFT/feature/inference calls and traced Python allocation
+`profile` measures repeated feature/inference calls and traced Python allocation
 peak; tracing perturbs timings and does not report full process RSS.
 
 SQLite contains experiments, raw chunk manifests, features, predictions, events
@@ -157,34 +162,40 @@ template). These do not override the generated source/configuration provenance.
 
 ## Hardware bring-up (pending)
 
-First review `hardware/design.md` and identify actual modules, voltages, shunt
-rating and safe motor fixture. Firmware compilation is not electrical validation.
-No sketch has been uploaded by this implementation task.
+First review `hardware/design.md` and identify actual module part numbers and
+voltages. Firmware compilation is not electrical validation. No sketch has been
+uploaded to real hardware by this implementation task — see
+[ADR-008](decisions/ADR-008-sensor-set-pivot.md) for the sensor-set pivot this
+guide already reflects.
 
-1. Start with motor disconnected and only the verified ADXL345 interface.
-2. Build/upload `uno_csv` manually at the identified COM port. This uses 100 Hz
-   ODR / 115200 baud; run `sentinel csv --port COMx` for debug output.
-3. Record six static orientations, raw scale and device configuration. Acceleration
-   initialization checks ID 0xE5 and rate/range readback; missing sensor produces
-   records without the acceleration-valid bit. Reboot after fixing wiring.
-4. Build/upload `uno` for 800 Hz / 500000 baud. Then run:
+1. Start with just the Uno and the HC-SR04 wired (see `hardware/design.md`'s
+   pin table); nothing else connected yet.
+2. Build/upload `uno_csv` manually at the identified COM port (115200 baud).
+   Run `sentinel csv --port COMx` for debug output.
+3. Confirm distance readings against a tape measure at a few known distances.
+   A missing/out-of-range echo produces records without the distance-valid bit.
+   Reboot after fixing wiring.
+4. Build/upload the plain `uno` binary build. Then run:
 
 ```powershell
 .\.venv\Scripts\python.exe -m sentinel --data data/physical acquire --port COMx --seconds 60 --condition NORMAL --metadata-json docs/experiments/run-template.json
 ```
 
-5. Inspect `analyze`, validity and gap diagnostics. Verify real timing with a logic
-   analyzer before calling sampling deterministic. FIFO is polled cooperatively,
-   at most four samples per loop; D2 is reserved but no ISR currently uses it.
-   Device timestamps are FIFO readout time, not exact conversion time.
-6. Add INA219 and externally powered DS18B20; verify units against instruments.
-   INA219 is configured at address 0x40, shunt +/-320 mV, continuous conversion;
-   raw 10 uV/LSB shunt voltage is converted with configured resistance (default
-   0.1 ohm, must match the actual board). Temperature uses 1/16 °C raw units.
-7. Verify LED/buzzer driver and serial commands. UNKNOWN is amber; FAULT red/buzzer
-   remains latched if host contact is lost. Non-fault states become UNKNOWN after
-   three seconds without a valid host command. Host retries ACKs, resets state on
-   reconnect, validates config and explicitly requests streaming.
+5. Inspect `analyze`, validity and gap diagnostics. Device timestamps are
+   host-assembly (`millis()`) time, not per-sensor conversion time.
+6. Add the water-level module, thermistor and photoresistor (plain analog
+   reads on A0/A1/A2) and the DHT module (D4). Measure the water-level
+   module's actual dry/wet ADC range and pass it via `--water-dry-raw`/
+   `--water-wet-raw`; measure the thermistor's real part and update
+   `pipeline.py`'s NTC constants; confirm DHT11 vs DHT22 against the part's
+   markings (see `hardware/design.md`).
+7. Measure the tank's actual empty/full sensor-to-surface distance and pass it
+   via `--distance-empty-mm`/`--distance-full-mm`.
+8. Verify the LED/PN2222-driven buzzer and serial commands. UNKNOWN is amber;
+   FAULT red/buzzer remains latched if host contact is lost. Non-fault states
+   become UNKNOWN after three seconds without a valid host command. Host
+   retries ACKs, resets state on reconnect, validates config and explicitly
+   requests streaming.
 
 Physical experiments, accepted timing limits, sensor calibration, long-run
 reliability, model generalization and physical T0–T7 latency remain unmeasured.
