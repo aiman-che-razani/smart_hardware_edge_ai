@@ -44,9 +44,8 @@ def main():
     sub.add_argument("--simulated", action="store_true")
     sub = commands.add_parser("evaluate")
     sub.add_argument("--model-dir", type=Path, required=True)
-    for name, port in (("api",8000),("dashboard",8050)):
-        sub = commands.add_parser(name)
-        sub.add_argument("--port", type=int, default=port)
+    sub = commands.add_parser("api", help="Serve the JSON API at /api/* and the web UI at / (once built)")
+    sub.add_argument("--port", type=int, default=8000)
     commands.add_parser("audit")
     sub = commands.add_parser("profile")
     sub.add_argument("--output", type=Path, required=True)
@@ -87,9 +86,6 @@ def main():
         import uvicorn
         from sentinel.api.main import create_app
         uvicorn.run(create_app(args.data), host="127.0.0.1", port=args.port)
-    elif args.command == "dashboard":
-        from sentinel.dashboard import create_dashboard
-        create_dashboard(args.data).run(host="127.0.0.1", port=args.port, debug=False)
     elif args.command == "audit":
         from sentinel.storage.database import audit
         result = audit(args.data)

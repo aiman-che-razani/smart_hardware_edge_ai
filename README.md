@@ -7,8 +7,9 @@ with a future host-controlled LED/buzzer alarm.
 
 **Software implementation with simulation-based verification.** Modular Uno
 firmware, binary/CSV transport, Python acquisition, DSP, grouped ML, local storage,
-API and dashboard are implemented. Hardware validation and a physical dataset are
-pending. Synthetic results are labelled and cannot be deployed as physical models.
+a JSON API and a React web UI are implemented. Hardware validation and a physical
+dataset are pending. Synthetic results are labelled and cannot be deployed as
+physical models.
 
 ## Run the demo
 
@@ -21,11 +22,13 @@ From this repository in PowerShell:
 In a second terminal:
 
 ```powershell
-.\.venv\Scripts\python.exe -m sentinel --data data/demo dashboard
+.\.venv\Scripts\python.exe -m sentinel --data data/demo api
 ```
 
-Open **http://127.0.0.1:8050**. For installation, model research, hardware bring-up
-and verification commands, see the [operating guide](docs/OPERATING-GUIDE.md).
+Open **http://127.0.0.1:8000** (once `frontend/` has been built — see the
+[operating guide](docs/OPERATING-GUIDE.md) — otherwise this serves `/api/*`
+JSON only). For installation, model research, hardware bring-up and
+verification commands, see the [operating guide](docs/OPERATING-GUIDE.md).
 
 ## Start here
 
@@ -41,7 +44,8 @@ and verification commands, see the [operating guide](docs/OPERATING-GUIDE.md).
 firmware/                 PlatformIO binary and CSV debug builds
   include/                configuration, fixed-width types and protocol
   src/                    sensors, acquisition, communication, actuators
-python/sentinel/          DAQ, DSP, ML, storage, API, dashboard, CLI
+python/sentinel/          DAQ, DSP, ML, storage, API, CLI
+frontend/                 React web UI (Vite) — consumes the JSON API
 docs/
   requirements.md         V1 specification, assumptions, acceptance mapping
   architecture/           system, scheduling and module boundaries

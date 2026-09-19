@@ -18,26 +18,38 @@ Set-Location 'C:\Users\nadee\Documents\smart_hardware_edge_ai'
 While that runs, open another terminal:
 
 ```powershell
-.\.venv\Scripts\python.exe -m sentinel --data data/demo dashboard
-```
-
-Visit **http://127.0.0.1:8050**. The dashboard shows SIMULATED, a state, DAQ
-counters, tank-level traces from both sensors, DHT/thermistor/light, scores and events. Select
-another run for comparison. Parquet flushes every 1600 records, so waveform
-refresh is approximately two seconds at 800 Hz; this is not a hard real-time UI.
-Finished/stale acquisition displays UNKNOWN rather than presenting old NORMAL
-as live health. Historical data remains accessible.
-
-Optional independent API:
-
-```powershell
 .\.venv\Scripts\python.exe -m sentinel --data data/demo api
 ```
 
-Open **http://127.0.0.1:8000/docs**. Read-only endpoints: `/health`, `/machines`,
-`/measurements`, `/features`, `/predictions`, `/events`, `/experiments`,
-`/system/status`; WebSocket `/live` publishes status each second. Both servers
-bind to loopback. Only one acquisition writer may use a given data directory.
+Open **http://127.0.0.1:8000/api/docs** for the interactive JSON API explorer.
+Read-only endpoints: `/api/health`, `/api/machines`, `/api/measurements`,
+`/api/features`, `/api/predictions`, `/api/events`, `/api/experiments`,
+`/api/system/status`; WebSocket `/api/live` publishes status each second.
+Binds to loopback. Only one acquisition writer may use a given data directory.
+
+### Web UI (React, at `/`)
+
+The same `sentinel api` process also serves the web UI, once it's built:
+
+```powershell
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Then open **http://127.0.0.1:8000** — the dashboard shows SIMULATED/PHYSICAL, a
+state, DAQ counters, six current-reading tiles (raw + converted, per sensor,
+updated every second regardless of Parquet flush timing), tank-level traces
+from both sensors, DHT/thermistor/light charts, risk-score history and events.
+Select another run to compare against. Finished/stale acquisition displays
+UNKNOWN rather than presenting old NORMAL as live health. Historical data
+remains accessible.
+
+For active frontend development instead (hot reload), run `npm run dev` in
+`frontend/` (separate terminal, port 5173) while `sentinel api` is running —
+Vite proxies `/api/*` through to it. Rebuild (`npm run build`) when you're done
+so `sentinel api` serves the updated version directly.
 
 ## Environment from scratch
 

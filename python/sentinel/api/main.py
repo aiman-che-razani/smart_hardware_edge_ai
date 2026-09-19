@@ -1,9 +1,13 @@
 import asyncio
 import json
+import logging
 from pathlib import Path
-from fastapi import FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, FastAPI, Query, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
 import pyarrow.parquet as pq
 from sentinel.storage.database import Store, connect
+
+LOG = logging.getLogger(__name__)
 
 
 def query(root, sql, parameters=()):
@@ -49,40 +53,41 @@ def measurements(root, run_id=None, limit=800):
 def create_app(root="data"):
     Store(root).close()
     app = FastAPI(title="SentinelDAQ", version="0.1.0")
+    api = APIRouter(prefix="/api")
 
-    @app.get("/health")
+    @api.get("/health")
     def health():
         return {"service": "ok", "daq": status(root)}
 
-    @app.get("/system/status")
+    @api.get("/system/status")
     def system_status():
         return status(root)
 
-    @app.get("/machines")
+    @api.get("/machines")
     def machines():
         return query(root, "SELECT DISTINCT machine_id FROM experiment_run")
 
-    @app.get("/experiments")
+    @api.get("/experiments")
     def experiments(limit: int = Query(100, ge=1, le=1000)):
         return query(root, "SELECT * FROM experiment_run ORDER BY started_at DESC LIMIT ?", (limit,))
 
-    @app.get("/measurements")
+    @api.get("/measurements")
     def raw(run_id: str = None, limit: int = Query(800, ge=1, le=3200)):
         return measurements(root, run_id, limit)
 
-    @app.get("/features")
+    @api.get("/features")
     def features(run_id: str = None, limit: int = Query(100, ge=1, le=1000)):
         return query(root, "SELECT * FROM feature_window WHERE (? IS NULL OR run_id=?) ORDER BY timestamp DESC LIMIT ?", (run_id, run_id, limit))
 
-    @app.get("/predictions")
-    def predictions(limit: int = Query(100, ge=1, le=1000)):
-        return query(root, "SELECT p.*, f.run_id, f.timestamp FROM prediction p JOIN feature_window f USING(window_id) ORDER BY timestamp DESC LIMIT ?", (limit,))
+    @api.get("/predictions")
+    def predictions(run_id: str = None, limit: int = Query(100, ge=1, le=1000)):
+        return query(root, "SELECT p.*, f.run_id, f.timestamp FROM prediction p JOIN feature_window f USING(window_id) WHERE (? IS NULL OR f.run_id=?) ORDER BY timestamp DESC LIMIT ?", (run_id, run_id, limit))
 
-    @app.get("/events")
+    @api.get("/events")
     def events(limit: int = Query(100, ge=1, le=1000)):
         return query(root, "SELECT * FROM event ORDER BY started_at DESC LIMIT ?", (limit,))
 
-    @app.websocket("/live")
+    @api.websocket("/live")
     async def live(socket: WebSocket):
         await socket.accept()
         try:
@@ -91,4 +96,13 @@ def create_app(root="data"):
                 await asyncio.sleep(1)
         except WebSocketDisconnect:
             pass
+
+    app.include_router(api)
+
+    dist = Path(__file__).parent.parent.parent.parent / "frontend" / "dist"
+    if dist.is_dir():
+        app.mount("/", StaticFiles(directory=dist, html=True), name="frontend")
+    else:
+        LOG.info("frontend/dist not found; serving /api/* JSON only. "
+                 "Run `npm install && npm run build` in frontend/ to enable the web UI.")
     return app

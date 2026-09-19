@@ -32,6 +32,7 @@ class Pipeline:
         self.water_dry_raw, self.water_wet_raw = water_dry_raw, water_wet_raw
         self.count = self.window_count = self.invalid = 0
         self.last_window = None
+        self.last_record = None
         self.latencies = []
 
     def disconnect(self):
@@ -66,6 +67,7 @@ class Pipeline:
                       thermistor_temp_c=self._thermistor_temp_c(sample.thermistor_raw),
                       light_pct=_clip_pct(sample.light_raw/1023*100))
         self.store.raw(record)
+        self.last_record = record
         self.count += 1
         if gap:
             self.windows.clear()
@@ -110,4 +112,5 @@ class Pipeline:
                 "duplicates": self.continuity.duplicates, "out_of_order": self.continuity.out_of_order,
                 "invalid_windows_or_samples": self.invalid,
                 "feature_ms_p50": float(np.median([x[0] for x in self.latencies])) if self.latencies else None,
-                "inference_ms_p50": float(np.median([x[1] for x in self.latencies])) if self.latencies else None}
+                "inference_ms_p50": float(np.median([x[1] for x in self.latencies])) if self.latencies else None,
+                "last_record": self.last_record}

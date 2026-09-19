@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 from sentinel.runner import run
 from sentinel.storage.database import audit, connect
 from sentinel.api.main import create_app, measurements
-from sentinel.dashboard import create_dashboard
 from sentinel.ml.train import grouped_partitions, train, evaluate
 from sentinel.ml.inference import Inference
 
@@ -21,23 +20,11 @@ def test_end_to_end_and_api(tmp_path):
         assert db.execute("SELECT alarm_state FROM event WHERE state='FAULT'").fetchone()[0]=="FAULT"
     with TestClient(create_app(tmp_path)) as client:
         for endpoint in ("health","machines","experiments","features","predictions","events","measurements","system/status"):
-            assert client.get('/'+endpoint).status_code==200
-        assert client.get('/measurements?limit=999999').status_code==422
-        with client.websocket_connect('/live') as websocket:
+            assert client.get('/api/'+endpoint).status_code==200
+        assert client.get('/api/measurements?limit=999999').status_code==422
+        assert client.get('/api/predictions?run_id='+result['run_id']).status_code==200
+        with client.websocket_connect('/api/live') as websocket:
             assert websocket.receive_json()["state"]=="UNKNOWN" # completed acquisition isn't live NORMAL
-    app=create_dashboard(tmp_path)
-    assert app.server.test_client().get('/').status_code==200
-    key = next(k for k in app.callback_map if 'health.children' in k)
-    response = app.server.test_client().post('/_dash-update-component', json={
-        'output': key,
-        'outputs': [{'id':'health','property':'children'}, {'id':'signals','property':'figure'},
-                    {'id':'history','property':'figure'}, {'id':'events','property':'children'}],
-        'inputs': [{'id':'tick','property':'n_intervals','value':1},
-                   {'id':'run','property':'value','value':result['run_id']},
-                   {'id':'compare','property':'value','value':None}],
-        'state': [], 'changedPropIds':['tick.n_intervals']})
-    assert response.status_code == 200, response.data
-    assert 'SIMULATED' in response.json['response']['health']['children']
 
 
 def test_corruption_creates_gaps_not_false_continuous_windows(tmp_path):
