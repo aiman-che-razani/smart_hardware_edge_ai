@@ -1,15 +1,14 @@
 {
-  "fault_type": "none",
-  "fault_severity": "none",
-  "motor_setting": "record supply voltage and measured speed if available",
-  "motor_model": "TO BE IDENTIFIED",
-  "motor_rated_current_a": null,
-  "motor_stall_current_a": null,
-  "sensor_breakout": "TO BE IDENTIFIED",
-  "mounting": "record sensor orientation, fastening and machine support",
-  "shunt_ohms_measured": null,
+  "tank_description": "TO BE IDENTIFIED",
+  "sensor_mounting": "record HC-SR04 height above the surface, water-level probe depth, thermistor and photoresistor placement",
+  "distance_empty_mm_measured": null,
+  "distance_full_mm_measured": null,
+  "water_dry_raw_measured": null,
+  "water_wet_raw_measured": null,
+  "thermistor_part": "TO BE IDENTIFIED",
+  "dht_variant": "TO BE IDENTIFIED (DHT11 or DHT22)",
   "firmware_build": "record environment, source revision and binary hash",
   "operator": "",
-  "guard_and_disconnect_check": "PENDING",
-  "notes": "Replace placeholders before a physical experiment. Do not create unsafe running faults."
+  "electrical_safety_check": "PENDING",
+  "notes": "Replace placeholders before a physical experiment. Keep liquid away from the breadboard, Uno and USB connection."
 }

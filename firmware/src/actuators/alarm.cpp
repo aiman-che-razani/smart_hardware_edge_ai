@@ -8,7 +8,9 @@ void set(uint8_t value) {
     digitalWrite(sentinel::kGreen, state==0);
     digitalWrite(sentinel::kAmber, state==1 || state==3);
     digitalWrite(sentinel::kRed, state==2);
-    digitalWrite(sentinel::kBuzzer, state==2);
+    // Passive piezo buzzer: needs an oscillating drive signal, not a static level.
+    if (state==2) tone(sentinel::kBuzzer, sentinel::kBuzzerHz);
+    else noTone(sentinel::kBuzzer);
 }
 void begin() {
     for (uint8_t pin=sentinel::kGreen;pin<=sentinel::kBuzzer;++pin) {
