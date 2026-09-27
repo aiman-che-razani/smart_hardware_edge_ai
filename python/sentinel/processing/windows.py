@@ -2,7 +2,7 @@ from collections import deque
 
 
 class Windows:
-    def __init__(self, size=800, overlap=0.5):
+    def __init__(self, size=30, overlap=0.5):
         if size < 8 or not 0 <= overlap < 1:
             raise ValueError("invalid window configuration")
         self.size = size

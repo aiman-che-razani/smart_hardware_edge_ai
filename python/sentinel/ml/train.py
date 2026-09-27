@@ -11,8 +11,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score, average_precision_score
+from sentinel import calibration
+from sentinel.ml.inference import load_artifact
 from sentinel.storage.database import connect
-from sentinel.processing.features import FEATURE_NAMES
+from sentinel.processing.features import FEATURE_NAMES, PIPELINE_VERSION
 
 
 def grouped_partitions(run_labels, seed=42):
@@ -75,6 +77,9 @@ def train(root, output, simulated=False, seed=42):
     windows = {json.dumps(json.loads(r["metadata"])["window"],sort_keys=True) for r in rows}
     if len(windows) != 1:
         raise ValueError("do not mix window configurations in one model")
+    calibrations = {json.dumps(calibration.from_metadata(json.loads(r["metadata"])), sort_keys=True) for r in rows}
+    if len(calibrations) != 1:
+        raise ValueError("do not mix calibrations in one model")
     labels = {r["run_id"]: r["condition"] for r in rows}
     if "NORMAL" not in labels.values() or len(set(labels.values())) < 2:
         raise ValueError("need NORMAL plus a fault condition")
@@ -114,16 +119,20 @@ def train(root, output, simulated=False, seed=42):
     artifact = {"version": version, "kind": chosen, "model": models[chosen], "features": FEATURE_NAMES,
                 "simulated": simulated, "seed": seed, "splits": splits, "fs": rates.pop(),
                 "dataset_sha256": hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest(),
-                "window": json.loads(windows.pop()),
-                "pipeline": "level-ambient-slope-v1"}
+                "window": json.loads(windows.pop()), "calibration": json.loads(calibrations.pop()),
+                "pipeline": PIPELINE_VERSION}
     joblib.dump(artifact, output / "model.joblib")
+    model_sha256 = hashlib.sha256((output / "model.joblib").read_bytes()).hexdigest()
+    (output / "model.joblib.sha256").write_text(model_sha256)
     (output / "splits.json").write_text(json.dumps(splits, indent=2))
     report = {"source": "SIMULATED" if simulated else "PHYSICAL", "selected": chosen,
               "selection": "validation fault recall, false positives, simplicity", "validation": reports,
-              "test": "untouched; run evaluate once after selection", "version": version}
+              "test": "untouched; run evaluate once after selection", "version": version,
+              "model_sha256": model_sha256}
     (output / "report.json").write_text(json.dumps(report, indent=2))
     with connect(root) as db:
-        db.execute("INSERT INTO model VALUES (?,?,?,?)", (version, time.time(), str(output / "model.joblib"), json.dumps(report)))
+        db.execute("INSERT INTO model (version, created_at, path, metadata) VALUES (?,?,?,?)",
+                   (version, time.time(), str(output / "model.joblib"), json.dumps(report)))
     return report
 
 
@@ -132,7 +141,7 @@ def evaluate(root, directory):
     destination = directory / "test-report.json"
     if destination.exists():
         raise ValueError("test evaluation already recorded; preserve the held-out result")
-    artifact = joblib.load(directory / "model.joblib")
+    artifact = load_artifact(directory / "model.joblib")
     rows = dataset(root, artifact["simulated"])
     if hashlib.sha256(json.dumps(rows,sort_keys=True).encode()).hexdigest() != artifact["dataset_sha256"]:
         raise ValueError("dataset changed since split/model freeze; use the original dataset snapshot")

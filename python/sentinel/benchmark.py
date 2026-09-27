@@ -10,7 +10,10 @@ def analyze(root, run_id=None):
     root=Path(root)
     with connect(root) as db:
         if run_id is None:
-            run_id=db.execute("SELECT run_id FROM experiment_run ORDER BY started_at DESC LIMIT 1").fetchone()[0]
+            latest=db.execute("SELECT run_id FROM experiment_run ORDER BY started_at DESC LIMIT 1").fetchone()
+            if latest is None:
+                raise ValueError("no runs recorded")
+            run_id=latest[0]
         run=dict(db.execute("SELECT * FROM experiment_run WHERE run_id=?",(run_id,)).fetchone())
         chunks=db.execute("SELECT path FROM raw_chunk WHERE run_id=? ORDER BY rowid",(run_id,)).fetchall()
         events=[dict(r) for r in db.execute("SELECT * FROM event WHERE run_id=? ORDER BY started_at",(run_id,))]

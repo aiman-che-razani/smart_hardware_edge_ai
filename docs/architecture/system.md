@@ -25,7 +25,7 @@ flowchart LR
   P --> C[Alarm state machine]
   C -->|serial command| U
   U --> B[LEDs and PN2222-driven buzzer]
-  S --> V[API and dashboard]
+  S --> V[API and React web UI]
 ```
 
 ## Sampling design
@@ -48,9 +48,11 @@ about every 49.7 days; the host must distinguish wrap from a new boot/session).
 
 ## Transport budget
 
-8N1 serial uses ten wire bits per byte. A 29-byte DATA frame plus a 10-byte
-STATUS frame once per second is roughly 40-50 bytes/s including framing overhead
-— trivial against 115200 baud's ~11520 bytes/s capacity. There is no batching,
+8N1 serial uses ten wire bits per byte. The 29-byte DATA and 10-byte STATUS
+figures are *payload* sizes; each frame adds 7 bytes of framing (2 magic, version,
+type, length, 2 CRC), so on the wire they are 36 and 17 bytes. One of each per
+second is about 53 bytes/s from the Uno (ACK replies to host commands are 11 bytes
+each and are extra) — under 0.5% of 115200 baud's ~11520 bytes/s capacity. There is no batching,
 no FIFO-overflow risk, and no reason to raise the baud rate; revisit only if a
 future sensor addition materially changes this math.
 
@@ -64,21 +66,42 @@ future sensor addition materially changes this math.
 - `src/acquisition/sampler.{h,cpp}`: once-per-second assembly of the latest
   reading from each sensor into one `Sample`.
 - `src/communication/serial_protocol.{h,cpp}`: bounded parser, framing and ACKs.
-- `src/actuators/alarm.{h,cpp}`: idempotent output states and communication
-  timeout; the buzzer output is now driven through a PN2222 (hardware-only change).
+- `src/actuators/alarm.{h,cpp}`: output states (0 NORMAL green, 1 WARNING amber,
+  2 FAULT red plus buzzer, 3 UNKNOWN amber) and the host-silence timeout. The
+  buzzer sits on D8 behind a PN2222 and is driven with `tone()` at 2500 Hz (passive
+  piezo). If no valid host command arrives for 3 s, any state other than FAULT
+  becomes UNKNOWN; FAULT survives host silence. This is not a hard latch: any host
+  `SET_ALARM` (0-3) or `CLEAR_ALARM` in `serial_protocol.cpp` overwrites the state,
+  including FAULT, and the host sends `SET_ALARM(3)` (UNKNOWN) after a reconnect
+  because its own state resets to UNKNOWN. Commands are idempotent: repeating the
+  same one leaves the same state.
 
 ## Python boundaries
 
-- `acquisition/`: one serial owner, byte decoding, sessions, receipt times and
-  backoff (`runner.py`), plus framing/parsing (`protocol.py`).
-- `processing/`: windowing and slow-signal features (mean/slope/range/std per
-  channel, plus cross-sensor agreement) consume validated records — no FFT.
-- `storage/`: explicit schemas, run metadata, bounded writes and repositories.
-- `ml/`: grouped training/evaluation and versioned inference artifacts.
-- State machine owns persistence; command sender owns IDs, ACK timeout/retry.
-- `api/` and dashboard read derived state without owning the serial port.
+All under `python/sentinel/`:
 
-Bound queues; choose and log an explicit overflow policy. Preserve raw readings
+- `acquisition/`: `protocol.py` (frame codec, `Parser`, `Sample`, `Continuity`),
+  `commands.py` (command IDs, ACK timeout/retry), `csv_protocol.py` (V0 debug
+  parser) and `simulator.py` (byte-level device simulator).
+- `runner.py` (top level, not under `acquisition/`): the acquisition run loop. One
+  serial-owner thread reads bytes into a bounded queue; the run loop decodes,
+  sends commands, and drives `pipeline.py`. It also handles receipt times and
+  reconnect backoff.
+- `pipeline.py`, `processing/` (`windows.py`, `features.py`): unit conversion with
+  calibration constants, windowing and slow-signal features (mean/slope/range/std
+  per channel, plus cross-sensor agreement) over validated records — no FFT.
+- `state.py`: persistence/hysteresis state machine.
+- `storage/database.py`: the `Store` class (run metadata, raw Parquet chunks,
+  feature windows, predictions, events, alarm-ack bookkeeping) and `audit()`;
+  `storage/status.py`: atomic `status.json` publishing. There is no separate
+  repository layer.
+- `ml/`: grouped training/evaluation and versioned inference artifacts.
+- `api/main.py` and the React frontend read stored/derived state without owning
+  the serial port.
+
+Queues are bounded (128 incoming chunks, 16 outgoing frames). The overflow policy
+is drop-and-count: a full queue increments `queue_drops` in the run summary and
+`status.json`; the drop is not logged, so only that counter shows it. Preserve raw readings
 before transformations. Device and PC clocks are different: subtracting their
 timestamps is not a valid one-way latency measurement without synchronization.
 Report host-stage durations with a monotonic clock and physical end-to-end latency

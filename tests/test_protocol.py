@@ -1,5 +1,4 @@
 import dataclasses
-import struct
 import pytest
 from sentinel.acquisition.protocol import *
 from sentinel.acquisition.commands import Commands
@@ -69,3 +68,38 @@ def test_csv_recovers_after_long_line_and_bad_integer():
     line = "D,"+",".join(str(v) for v in sample().__dict__.values())+"\n"
     assert p.feed(b"X\n"+b"q"*200+b"\n"+line.encode()) == [sample()]
     assert p.errors == 2
+
+
+def csv_line(**kwargs):
+    return ("D," + ",".join(str(v) for v in sample(**kwargs).__dict__.values()) + "\n").encode()
+
+
+@pytest.mark.parametrize("bad", [
+    b"D,1,2,3\n", b"X" + csv_line()[1:], b"D," + b"1," * 11 + b"x\n", b"\xff\xfe\n", b"\n",
+    b"D,4294967296" + csv_line()[3 + len(str(sample().boot)):],  # boot overflows uint32
+    b"D,-1" + csv_line()[3 + len(str(sample().boot)):],          # negative for an unsigned field
+])
+def test_csv_bad_line_counts_one_error_and_the_next_line_still_parses(bad):
+    p = CSVParser()
+    assert p.feed(bad) == [] and p.errors == 1
+    assert p.feed(csv_line()) == [sample()]
+
+
+def test_csv_line_is_held_until_its_newline_and_accepts_crlf_and_single_bytes():
+    p = CSVParser()
+    line = csv_line()
+    assert p.feed(line[:-1]) == []
+    assert p.feed(line[-1:]) == [sample()]
+    out = []
+    for byte in line[:-1] + b"\r\n":
+        out += p.feed(bytes([byte]))
+    assert out == [sample()] and p.errors == 0
+
+
+def test_continuity_rejects_backwards_sequence_and_backwards_device_time():
+    c = Continuity()
+    assert c.accept(sample(sequence=10, timestamp_ms=10_000)) == (True, True)
+    assert c.accept(sample(sequence=9, timestamp_ms=9_000)) == (False, False)
+    assert c.accept(sample(sequence=11, timestamp_ms=9_500)) == (False, False)
+    assert c.out_of_order == 2 and c.gaps == 0 and c.previous.sequence == 10
+    assert c.accept(sample(sequence=11, timestamp_ms=11_000)) == (True, False)

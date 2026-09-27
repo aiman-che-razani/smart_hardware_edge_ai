@@ -20,7 +20,8 @@ void begin() {
 }
 void heartbeat() { lastHost=millis(); }
 void poll() {
-    if (uint32_t(millis()-lastHost)>3000 && state!=2) set(3);
+    if (uint32_t(millis()-lastHost)>sentinel::kHostTimeoutMs && state!=2 && state!=3) set(3);
     // FAULT remains latched on host loss; explicit recovery command clears it.
+    // state!=3 avoids re-driving the pins and re-arming tone() every loop once already idle.
 }
 }

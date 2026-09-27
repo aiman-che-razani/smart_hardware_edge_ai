@@ -9,7 +9,7 @@
 #include <Arduino.h>
 namespace {
 Sample sample = {};
-uint32_t lastReport = 0, lastStatus = 0;
+uint32_t lastReport = 0, lastStatus = 500;  // Offset from DATA's tick so a coincident ACK can't overflow the TX buffer.
 uint16_t age(uint32_t now, uint32_t previous) {
     uint32_t elapsed = now - previous;
     return elapsed > 65535 ? 65535 : uint16_t(elapsed);
@@ -27,7 +27,7 @@ void poll() {
     uint32_t now = millis();
     ultrasonic::poll(now);
     ambient::poll(now);
-    if (uint32_t(now - lastStatus) >= 1000) { lastStatus = now; transport::status(); }
+    if (uint32_t(now - lastStatus) >= sentinel::kStatusIntervalMs) { lastStatus = now; transport::status(); }
     if (uint32_t(now - lastReport) < sentinel::kReportIntervalMs) return;
     lastReport = now;
 

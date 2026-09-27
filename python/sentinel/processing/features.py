@@ -1,6 +1,8 @@
 import numpy as np
 
-CHANNELS = ("level_ultrasonic_pct", "level_water_pct", "ambient_temp_c",
+# Bump when FEATURE_NAMES or how a window becomes features changes; model artifacts record it.
+PIPELINE_VERSION = "level-ambient-slope-v1"
+CHANNELS =("level_ultrasonic_pct", "level_water_pct", "ambient_temp_c",
             "ambient_humidity_pct", "thermistor_temp_c", "light_pct")
 METRICS = ("mean", "slope_per_s", "range", "std")
 FEATURE_NAMES = [f"{channel}_{metric}" for channel in CHANNELS for metric in METRICS] + [

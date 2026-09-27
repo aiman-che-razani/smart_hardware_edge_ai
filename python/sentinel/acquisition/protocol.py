@@ -6,6 +6,8 @@ import time
 
 MAGIC = b"\xa5\x5a"
 VERSION = 1
+# Declared, not reported by the device: the firmware does not send its version.
+FIRMWARE_VERSION = "0.1.0"
 MAX_PAYLOAD = 40
 DATA = struct.Struct("<IIIHHHHHhHHB")
 CONFIG = struct.Struct("<IHHH")
@@ -116,14 +118,14 @@ class Continuity:
     def __init__(self):
         self.previous = None
         self.gaps = self.resets = self.duplicates = self.out_of_order = 0
-        self.elapsed_us = 0
+        self.elapsed_ms = 0
 
     def accept(self, sample):
         p = self.previous
         if p is None or sample.boot != p.boot:
             self.resets += int(p is not None)
             self.previous = sample
-            self.elapsed_us = 0
+            self.elapsed_ms = 0
             return True, True
         delta = (sample.sequence - p.sequence) & 0xFFFFFFFF
         if delta == 0:
@@ -137,6 +139,6 @@ class Continuity:
             self.out_of_order += 1
             return False, False
         self.gaps += delta - 1
-        self.elapsed_us += dt
+        self.elapsed_ms += dt
         self.previous = sample
         return True, delta != 1

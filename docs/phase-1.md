@@ -4,7 +4,7 @@
 > before the sensor-set pivot to tank/environmental monitoring — see
 > [ADR-008](decisions/ADR-008-sensor-set-pivot.md). The current Phase 1 (HC-SR04
 > ultrasonic slice) is described in [PHASE-STATUS.md](PHASE-STATUS.md) and the
-> bring-up steps in [OPERATING-GUIDE.md](OPERATING-GUIDE.md#hardware-bring-up-pending).
+> bring-up steps in [OPERATING-GUIDE.md](OPERATING-GUIDE.md#hardware-bring-up-in-progress).
 > Kept as-is for the historical record; the ADXL345-specific detail below no
 > longer applies.
 

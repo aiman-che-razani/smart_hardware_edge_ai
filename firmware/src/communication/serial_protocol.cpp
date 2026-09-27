@@ -5,12 +5,14 @@
 #include <Arduino.h>
 #include <string.h>
 namespace {
-uint8_t rx[47], used=0;
+constexpr uint8_t kFrameMax = sentinel::kMaxPayload + 7;  // magic(2) + version + kind + length + CRC(2)
+static_assert(sizeof(Sample) <= sentinel::kMaxPayload, "DATA payload exceeds the frame limit");
+uint8_t rx[kFrameMax], used=0;
 uint32_t bootId=0, lastByte=0;
 bool enabled=true;
 bool frame(uint8_t kind,const void* data,uint8_t length) {
-    uint8_t buffer[47]={0xA5,0x5A,1,kind,length};
-    if (length>40 || Serial.availableForWrite()<length+7) return false;
+    uint8_t buffer[kFrameMax]={0xA5,0x5A,sentinel::kProtocolVersion,kind,length};
+    if (length>sentinel::kMaxPayload || Serial.availableForWrite()<length+7) return false;
     memcpy(buffer+5,data,length);
     uint16_t crc=crc16(buffer+2,length+3);
     buffer[length+5]=crc&255; buffer[length+6]=crc>>8;
@@ -52,15 +54,15 @@ bool send(const Sample& s) {
 #endif
 }
 void poll() {
-    if (used && uint32_t(millis()-lastByte)>500) used=0;
-    uint8_t budget=32;
+    if (used && uint32_t(millis()-lastByte)>sentinel::kRxTimeoutMs) used=0;
+    uint8_t budget=sentinel::kRxBudget;
     while (Serial.available() && budget--) {
         if (used==sizeof(rx)) consume(1);
         rx[used++]=Serial.read(); lastByte=millis();
         while (used>=2) {
             if(rx[0]!=0xA5 || rx[1]!=0x5A) { consume(1); continue; }
             if(used<5) break;
-            if(rx[2]!=1 || rx[4]>40) { consume(1); continue; }
+            if(rx[2]!=sentinel::kProtocolVersion || rx[4]>sentinel::kMaxPayload) { consume(1); continue; }
             uint8_t total=rx[4]+7;
             if(used<total) break;
             uint16_t check=rx[total-2] | (uint16_t(rx[total-1])<<8);

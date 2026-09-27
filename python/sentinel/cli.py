@@ -57,6 +57,7 @@ def main():
     sub.add_argument("--output", type=Path, required=True)
     sub = commands.add_parser("benchmark")
     sub.add_argument("--seconds", type=float, default=60)
+    commands.add_parser("reconcile", help="Mark runs left RUNNING by a killed process as INTERRUPTED")
     sub = commands.add_parser("csv", help="Read-only live V0 debug display")
     sub.add_argument("--port", required=True)
     args = parser.parse_args()
@@ -89,6 +90,9 @@ def main():
     elif args.command == "audit":
         from sentinel.storage.database import audit
         result = audit(args.data)
+    elif args.command == "reconcile":
+        from sentinel.storage.database import reconcile
+        result = {"reconciled": reconcile(args.data)}
     elif args.command == "analyze":
         from sentinel.benchmark import analyze
         result = analyze(args.data,args.run_id)

@@ -13,3 +13,4 @@ data/
 *.sqlite*
 *.parquet
 *.log
+.claude/settings.local.json

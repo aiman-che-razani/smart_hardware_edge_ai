@@ -3,8 +3,11 @@
 ## Current scope
 
 The user authorized implementation across phases and selected simulation until
-hardware details are available. Software paths are implemented and exercised;
-physical phase acceptance is pending. The original phase-by-phase brief and
+hardware details are available. Software paths are implemented and exercised
+against generated data. The Uno binary firmware has since been uploaded and
+bring-up captures exist (see [Hardware bring-up](#hardware-bring-up-in-progress)),
+but they are uncalibrated and are not a dataset; physical phase acceptance is
+pending. The original phase-by-phase brief and
 Phase 0 documents remain historical design records. This guide describes current
 commands and behavior and supersedes their scaffold-only instructions.
 
@@ -21,11 +24,36 @@ While that runs, open another terminal:
 .\.venv\Scripts\python.exe -m sentinel --data data/demo api
 ```
 
-Open **http://127.0.0.1:8000/api/docs** for the interactive JSON API explorer.
+FastAPI's interactive Swagger page is served at **http://127.0.0.1:8000/docs**
+(not under `/api/`). Known issue: under the current venv (Python 3.9.0, fastapi
+0.124.4, starlette 0.49.3, pydantic 2.13.5) OpenAPI generation fails, so
+`/openapi.json` returns HTTP 500 and the Swagger page cannot load its spec
+(observed 2026-09-23 on the older fastapi 0.119.1; the same failure was
+reconfirmed 2026-09-27 after upgrading to 0.124.4/starlette 0.49.3, so it is not
+the FastAPI/Starlette version — `app.openapi()` called in-process, without
+starting a server, raised `AttributeError: '_SpecialForm' object has no attribute
+'replace'` inside pydantic's `json_schema.py`, a pydantic/`typing` incompatibility
+on Python 3.9.0). The endpoints themselves do not use that code path. Use the web
+UI or `curl` against the endpoints below until the Python version is upgraded.
 Read-only endpoints: `/api/health`, `/api/machines`, `/api/measurements`,
 `/api/features`, `/api/predictions`, `/api/events`, `/api/experiments`,
 `/api/system/status`; WebSocket `/api/live` publishes status each second.
 Binds to loopback. Only one acquisition writer may use a given data directory.
+
+### Data directories are separate stores; start the API per directory
+
+The global `--data <dir>` option (given before the subcommand) selects a
+self-contained store: `sentinel.sqlite`, `raw/` Parquet chunks, `status.json` and
+the per-run `<run_id>-summary.json` files. `sentinel api` serves **exactly one**
+data directory, and `status.json` (live state) is per directory too. To view
+`data/physical` start `sentinel --data data/physical api`; the demo API on
+`data/demo` will not show it. To run two APIs at once give each its own `--port`
+(`api --port 8001`). Keep physical captures and synthetic runs in separate
+directories, as the repository does (`data/physical`, `data/physical_check`,
+`data/demo`, `data/research`, ...). Port 8000 must be free: an unrelated process
+already listening there (an unrelated `python -m http.server` was found holding
+it during bring-up) means the browser shows that process, not this API; check
+what owns the port or pass a different `--port`.
 
 ### Web UI (React, at `/`)
 
@@ -64,10 +92,17 @@ $env:PLATFORMIO_CORE_DIR = Join-Path (Get-Location) '.pio'
 
 Dependencies: PySerial owns the serial port; NumPy performs the slow-signal
 feature math; PyArrow stores columnar raw data; scikit-learn/joblib train and
-persist small models; FastAPI/Uvicorn provide the local API; Dash/Plotly plot
-the engineering views. SQLite is in Python's standard library. Firmware uses
+persist small models; FastAPI/Uvicorn provide the local API (Starlette is pinned to
+0.49.1 or newer, which fixes a `StaticFiles` Range-header denial of service); Plotly
+renders the standalone HTML report (optional: the `report` extra, also part of `dev`);
+the web UI is the React app in `frontend/` (Dash is not used by any
+code and is not a declared dependency, even though it may still be installed in an
+older venv). SQLite is in Python's standard library. Firmware uses
 the SimpleDHT library for the DHT sensor; no SPI/I2C/OneWire remains in the
-design. No distributed infrastructure is required.
+design. No distributed infrastructure is required. Use Python 3.9.1 or newer: on
+3.9.0 (the version this venv was first built with) pydantic cannot build the OpenAPI
+schema, so `/openapi.json` returns 500 and `/docs` cannot load; the API logs a
+warning at startup on that version.
 
 ## Synthetic research workflow
 
@@ -79,6 +114,13 @@ Keep labelled research runs separate from changing-condition CYCLE demos.
 .\.venv\Scripts\python.exe -m sentinel --data data/research-new evaluate --model-dir data/models/new-model
 .\.venv\Scripts\python.exe -m sentinel --data data/ml-demo simulate --seconds 90 --model data/models/new-model/model.joblib
 ```
+
+`train` writes `model.joblib` together with `model.joblib.sha256`; `evaluate` and
+`simulate/acquire --model` refuse a model whose file does not match that recorded
+hash, because a joblib file is a pickle and loading one executes code. The model
+artifact also records the calibration it was trained under, and a run whose
+calibration differs is refused. Models trained before 2026-09-27 have neither and
+must be retrained.
 
 These commands create explicitly synthetic NORMAL, LOW_WATER, OVERFLOW,
 RAPID_DRAIN, SENSOR_MISMATCH and ENVIRONMENTAL_ANOMALY signals. `--seconds`
@@ -145,12 +187,12 @@ each report cycle.
 ```powershell
 .\.venv\Scripts\python.exe -m sentinel --data data/demo audit
 .\.venv\Scripts\python.exe -m sentinel --data data/demo analyze
-.\.venv\Scripts\python.exe -m sentinel --data data/demo report --output data/reports/waveform.html
+.\.venv\Scripts\python.exe -m sentinel --data data/demo report --output data/reports/sentinel-report.html
 .\.venv\Scripts\python.exe -m sentinel --data data/benchmark-new benchmark --seconds 60
 .\.venv\Scripts\python.exe -m sentinel profile --output data/reports/host-profile.json
 ```
 
-The report is a standalone Plotly HTML file. `analyze` reports readout rate,
+The report is a standalone Plotly HTML file (tank-level and DHT charts for one run). `analyze` reports readout rate,
 interval/jitter statistics and event-based false alarms/hour only for labelled
 NORMAL runs. Simulation time is generated; its perfect rate is not hardware
 evidence. The benchmark runs as fast as possible by default: `60` means sixty
@@ -160,54 +202,83 @@ Use `simulate --seconds 3600 --realtime` for a one-hour PC soak.
 peak; tracing perturbs timings and does not report full process RSS.
 
 SQLite contains experiments, raw chunk manifests, features, predictions, events
-and model metadata, with foreign keys and run/time indexes. Raw Parquet files
-are written to `.partial`, atomically renamed, then indexed. Crash between rename
+and model metadata, with foreign keys and run/time indexes. Raw rows are buffered
+in memory and written as a Parquet chunk every 30 seconds or once 1600 rows have
+accumulated (whichever comes first) and at clean shutdown, so a killed process loses
+at most about the last 30 seconds (before 2026-09-27 the threshold was rows only,
+about 27 minutes at 1 Hz, and a kill lost far more).
+Raw Parquet files are written to `.partial`, atomically renamed, then indexed. Crash between rename
 and SQLite commit leaves an orphan, not a referenced partial file. `audit` lists
 orphans, missing files, partial files and unfinished runs; it never deletes data.
-Keep a backup/snapshot before evaluation. No schema migration framework is present;
-this is schema version 1 and future schema changes must have explicit migration.
+Keep a backup/snapshot before evaluation. The schema carries a version
+(`PRAGMA user_version`); there is no migration framework, so a column change needs a
+deliberate migration (see [ADR-010](decisions/ADR-010-storage-layout.md)). A process
+that is killed rather than stopped with Ctrl-C leaves its run in status `RUNNING`;
+`audit` lists such runs under `unfinished_runs`, and
+`sentinel --data <dir> reconcile` marks stale ones `INTERRUPTED` and closes their
+open events (it skips a run that is still publishing live status). `audit` opens the
+database read-only.
 
 Each run has a JSON summary; raw data, models and large reports stay in ignored
 `data/`. Commit curated evidence from `docs/benchmarks` instead. Operator details
 can be supplied using `--machine`, `--notes`, `--metadata-json` (see experiment
 template). These do not override the generated source/configuration provenance.
 
-## Hardware bring-up (pending)
+## Hardware bring-up (in progress)
+
+Status as of 2026-09-27: the plain `uno` binary firmware has been uploaded to a
+real Uno and captures have been made (the port was COM5 during bring-up; the COM
+number varies with the USB port and can change after a replug, so always check
+Device Manager or `python -m serial.tools.list_ports`). Captures are in
+`data/physical` (2026-09-19/20) and `data/physical_check` (2026-09-23); see
+[failures](failures/README.md) for what they showed. They are bring-up data, not a
+dataset: every run is labelled NORMAL, none was calibrated (all runs used the
+placeholder `--distance-*`/`--water-*` defaults, which the run metadata records),
+and no run has a tape-measure reference. Firmware compilation and a successful
+capture are still not electrical validation or acceptance.
 
 First review `hardware/design.md` and identify actual module part numbers and
-voltages. Firmware compilation is not electrical validation. No sketch has been
-uploaded to real hardware by this implementation task — see
-[ADR-008](decisions/ADR-008-sensor-set-pivot.md) for the sensor-set pivot this
-guide already reflects.
+voltages. See [ADR-008](decisions/ADR-008-sensor-set-pivot.md) for the sensor-set
+pivot this guide reflects. Checklist (done = observed in the captures; the rest is
+open):
 
-1. Start with just the Uno and the HC-SR04 wired (see `hardware/design.md`'s
-   pin table); nothing else connected yet.
-2. Build/upload `uno_csv` manually at the identified COM port (115200 baud).
-   Run `sentinel csv --port COMx` for debug output.
-3. Confirm distance readings against a tape measure at a few known distances.
-   A missing/out-of-range echo produces records without the distance-valid bit.
-   Reboot after fixing wiring.
-4. Build/upload the plain `uno` binary build. Then run:
+1. Done: Uno with the HC-SR04 wired (see `hardware/design.md`'s pin table).
+2. Optional debug: build/upload `uno_csv` at the identified COM port (115200
+   baud) and run `sentinel csv --port COMx`.
+3. **Open:** confirm distance readings against a tape measure at a few known
+   distances. Not yet done: one capture reports ~2.2 m (sensor not aimed at the
+   tank) and another has ~38% of readings without a valid echo. A missing/
+   out-of-range echo produces records without the distance-valid bit. Reboot after
+   fixing wiring.
+4. Done: the plain `uno` binary build is uploaded and streaming. Acquire with:
 
 ```powershell
 .\.venv\Scripts\python.exe -m sentinel --data data/physical acquire --port COMx --seconds 60 --condition NORMAL --metadata-json docs/experiments/run-template.json
 ```
 
-5. Inspect `analyze`, validity and gap diagnostics. Device timestamps are
+   Stop a run with Ctrl-C (status `INTERRUPTED`, buffered rows flushed) or let
+   `--seconds` elapse. Do not kill the process or unplug the Uno mid-run: a killed
+   process leaves the run `RUNNING` and loses the unflushed rows.
+5. Partly done: `analyze`, validity and gap diagnostics exist and were used; the
+   1 h capture showed no sequence gaps or parser errors. Device timestamps are
    host-assembly (`millis()`) time, not per-sensor conversion time.
-6. Add the water-level module, thermistor and photoresistor (plain analog
-   reads on A0/A1/A2) and the DHT module (D4). Measure the water-level
-   module's actual dry/wet ADC range and pass it via `--water-dry-raw`/
-   `--water-wet-raw`; measure the thermistor's real part and update
-   `pipeline.py`'s NTC constants; confirm DHT11 vs DHT22 against the part's
-   markings (see `hardware/design.md`).
-7. Measure the tank's actual empty/full sensor-to-surface distance and pass it
-   via `--distance-empty-mm`/`--distance-full-mm`.
-8. Verify the LED/PN2222-driven buzzer and serial commands. UNKNOWN is amber;
-   FAULT red/buzzer remains latched if host contact is lost. Non-fault states
-   become UNKNOWN after three seconds without a valid host command. Host
-   retries ACKs, resets state on reconnect, validates config and explicitly
-   requests streaming.
+6. **Open:** all five sensor channels report values, but none is calibrated. Measure
+   the water-level module's actual dry/wet ADC range (the 5 h capture sat at a dry
+   floor around raw 7) and pass it via `--water-dry-raw`/`--water-wet-raw`; measure
+   the thermistor's real part and update `pipeline.py`'s NTC constants; confirm
+   DHT11 vs DHT22 against the part's markings (see `hardware/design.md`).
+7. **Open:** measure the tank's actual empty/full sensor-to-surface distance and
+   pass it via `--distance-empty-mm`/`--distance-full-mm`; record the measured
+   values in the run metadata (`docs/experiments/run-template.json`) and see
+   [ADR-011](decisions/ADR-011-calibration-approach.md).
+8. **Open:** verify the LED/PN2222-driven buzzer and serial commands on real
+   outputs. UNKNOWN is amber. Firmware behaviour: a FAULT state is not dropped by the
+   3 s host-silence timeout, but any host `SET_ALARM` or `CLEAR_ALARM` overrides it,
+   and the host sends `SET_ALARM(3)` (UNKNOWN) after a reconnect, so FAULT is not a
+   hard latch. Non-fault states become UNKNOWN after three seconds without a valid
+   host command. Host retries ACKs, resets state on reconnect, validates config and
+   explicitly requests streaming. USB unplug/replug and Arduino reset are not yet
+   tested (see [verification matrix](failures/verification-matrix.md)).
 
 Physical experiments, accepted timing limits, sensor calibration, long-run
-reliability, model generalization and physical T0–T7 latency remain unmeasured.
+reliability, model generalization and physical T0-T7 latency remain unmeasured.

@@ -42,7 +42,7 @@ shutoff system. Phase 0 provides specifications and environment checks only.
 | N05 | Reproduce runs with firmware/config/protocol/model versions and units | metadata audit |
 | N06 | No invented benchmark figures; distinguish sensor time from host receipt time | benchmark ledger with method and raw evidence |
 | N07 | Use one-process/simple local infrastructure first | Parquet + SQLite; no services in Phase 0 |
-| N08 | ~29-byte DATA frame once/second is far below the 115200-baud transport budget; revisit only if a future sensor materially raises the rate | encoded byte counts and throughput test |
+| N08 | ~29-byte DATA payload (36 bytes on the wire) once/second, about 53 bytes/s with STATUS, is far below the 115200-baud transport budget; revisit only if a future sensor materially raises the rate | encoded byte counts and throughput test |
 | N09 | Provisional Phase 2 mean report rate within 1% of the configured 1 Hz over 60 s, with all observed loss reported | measured rate and loss; failure triggers design review |
 
 Jitter, long-run loss, false-alarm and inference-latency acceptance limits must be

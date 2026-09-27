@@ -68,3 +68,50 @@ def test_state_persistence_and_sustained_recovery():
     assert s.update(0.1)=="NORMAL"
     assert s.update(None)=="UNKNOWN"
     assert s.update(0.9)=="WARNING"
+
+
+@pytest.mark.parametrize("size,overlap,step", [(8, 0, 8), (8, 0.75, 2), (8, 0.99, 1), (30, 0.5, 15)])
+def test_window_step_follows_the_overlap(size, overlap, step):
+    w = Windows(size, overlap)
+    emitted = [i for i in range(size + 3 * step) if w.add(i) is not None]
+    assert emitted == [size - 1 + k * step for k in range(4)]
+
+
+@pytest.mark.parametrize("size,overlap", [(7, 0.5), (8, -0.1), (8, 1.0)])
+def test_window_configuration_is_validated(size, overlap):
+    with pytest.raises(ValueError):
+        Windows(size, overlap)
+
+
+def test_a_cleared_window_needs_a_full_size_before_it_emits_again():
+    w = Windows(8, 0.5)
+    for i in range(8):
+        w.add(i)
+    w.clear()
+    assert [w.add(i) for i in range(7)] == [None] * 7
+    assert w.add(7) == list(range(8))
+
+
+@pytest.mark.parametrize("scores,expected", [
+    ([0.5], "WARNING"), ([0.49], "UNKNOWN"),
+    ([0.8, 0.8, 0.8], "FAULT"), ([0.8, 0.8, 0.79, 0.8], "WARNING"),
+    ([0.9, 0.9, 0.9, 0.4, 0.3, 0.3, 0.3, 0.3], "FAULT"),
+    ([0.9, 0.9, 0.9] + [0.3] * 5, "NORMAL"),
+    ([0.6, 0.3, 0.3, 0.3, 0.3, 0.3], "NORMAL"),
+    ([0.6, 0.3, 0.3, 0.3, 0.3, 0.31], "WARNING"),
+    ([0.6, float("nan")], "UNKNOWN"), ([0.6, float("inf")], "UNKNOWN"), ([0.6, 1.01], "UNKNOWN"), ([0.6, -0.01], "UNKNOWN"),
+])
+def test_state_machine_threshold_boundaries(scores, expected):
+    s = StateMachine()
+    for score in scores:
+        s.update(score)
+    # 0.49 alone never leaves the initial UNKNOWN: the machine needs a sustained low run to declare NORMAL
+    assert s.state == expected
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"recovery": 0.5}, {"warning": 0.8}, {"fault": 1.1}, {"recovery": -0.1}, {"persistence": 0}, {"recovery_windows": 0},
+])
+def test_state_machine_rejects_inconsistent_thresholds(kwargs):
+    with pytest.raises(ValueError):
+        StateMachine(**kwargs)

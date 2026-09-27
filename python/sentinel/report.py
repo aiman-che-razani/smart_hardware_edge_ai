@@ -2,7 +2,7 @@
 from pathlib import Path
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from sentinel.api.main import measurements, query
+from sentinel.storage.queries import measurements, query
 
 
 def export(root, output, run_id=None):

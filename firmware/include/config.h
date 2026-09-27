@@ -8,6 +8,12 @@ constexpr uint16_t kReportIntervalMs = 1000;      // One assembled DATA frame pe
 constexpr uint16_t kUltrasonicIntervalMs = 150;   // HC-SR04 needs >=60 ms between pings; margin.
 constexpr uint32_t kUltrasonicTimeoutUs = 25000;  // ~4.3 m max range at 343 m/s round trip.
 constexpr uint16_t kAmbientIntervalMs = 2000;     // Covers both DHT11 (1 s) and DHT22 (2 s) minimums.
+constexpr uint16_t kStatusIntervalMs = 1000;      // STATUS frame cadence.
+constexpr uint16_t kHostTimeoutMs = 3000;         // Host silence before the alarm falls back to UNKNOWN; FAULT is kept.
+constexpr uint16_t kRxTimeoutMs = 500;            // A partial inbound frame is dropped after this long.
+constexpr uint8_t kProtocolVersion = 1;           // Must match the host's protocol.VERSION.
+constexpr uint8_t kMaxPayload = 40;               // Must match the host's protocol.MAX_PAYLOAD.
+constexpr uint8_t kRxBudget = 32;                 // Bytes read per poll(), so sampling is never starved.
 constexpr uint8_t kUltrasonicEcho = 2, kUltrasonicTrig = 3;
 constexpr uint8_t kAmbientData = 4;
 constexpr uint8_t kGreen = 5, kAmber = 6, kRed = 7, kBuzzer = 8;  // Buzzer driven via PN2222.

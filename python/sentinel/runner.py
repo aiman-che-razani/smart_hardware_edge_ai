@@ -5,7 +5,8 @@ import queue
 import threading
 import time
 import serial
-from sentinel.acquisition.protocol import Parser, Sample, Kind, CONFIG
+from sentinel import __version__, calibration
+from sentinel.acquisition.protocol import Parser, Sample, Kind, CONFIG, VERSION, FIRMWARE_VERSION
 from sentinel.acquisition.commands import Commands
 from sentinel.acquisition.simulator import Simulator
 from sentinel.pipeline import Pipeline
@@ -27,12 +28,12 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=1, baud=115200,
     operator_metadata = json.loads(Path(metadata_json).read_text()) if metadata_json else {}
     if not isinstance(operator_metadata, dict):
         raise ValueError("metadata JSON must be an object")
+    tank = calibration.build(distance_empty_mm, distance_full_mm, water_dry_raw, water_wet_raw)
     store = Store(root)
-    run_id = store.start(condition, fs, simulated, {"protocol": 1, "firmware": "0.1.0",
+    run_id = store.start(condition, fs, simulated, {"protocol": VERSION, "firmware": FIRMWARE_VERSION,
+        "host": __version__,
         "source": "SIMULATED" if simulated else "PHYSICAL", "seed": seed if simulated else None,
-        "baud": baud,
-        "distance_empty_mm": distance_empty_mm, "distance_full_mm": distance_full_mm,
-        "water_dry_raw": water_dry_raw, "water_wet_raw": water_wet_raw,
+        "baud": baud, **tank,
         "window": {"seconds":window_seconds,"overlap":overlap},
         "operator_notes":notes,"operator_metadata":operator_metadata}, machine=machine)
     try:
@@ -94,6 +95,7 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=1, baud=115200,
     started = last_rx
     cpu_started = time.process_time()
     status = "COMPLETE"
+    failed = False
 
     def send(frame):
         nonlocal pending_simulated
@@ -195,10 +197,12 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=1, baud=115200,
                 if not publish(root,summary):
                     counters["status_publish_skips"] += 1
                 last_publish = time.monotonic()
+            store.flush_due()
     except KeyboardInterrupt:
         status = "INTERRUPTED"
     except Exception:
         status = "FAILED"
+        failed = True
         raise
     finally:
         stop.set()
@@ -208,9 +212,17 @@ def run(root, duration=24, condition="CYCLE", port=None, fs=1, baud=115200,
                        command_failures=commands.failures, simulated=simulated, run_id=run_id,
                        elapsed_wall_s=time.monotonic()-started, updated_at=time.time(), acquisition_status=status)
         summary["process_cpu_s"] = time.process_time()-cpu_started
-        store.close(status)
+        close_error = None
+        try:
+            store.close(status)
+        except Exception as error:
+            # The run row is already FAILED (Store.close); still publish and write the summary.
+            close_error = error
+            summary["acquisition_status"] = "FAILED"
         if not publish(root,summary):
             counters["status_publish_skips"] += 1
             summary["status_publish_skips"] = counters["status_publish_skips"]
         (Path(root)/f"{run_id}-summary.json").write_text(json.dumps(summary, indent=2))
+        if close_error and not failed:
+            raise close_error
     return summary

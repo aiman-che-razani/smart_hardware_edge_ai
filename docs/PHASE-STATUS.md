@@ -1,7 +1,12 @@
 # Phase coverage and remaining acceptance
 
 Software implementation across phases was authorized after Phase 0. User selected
-simulation; no physical experiment is claimed complete. The sensor set was
+simulation. Since then the Uno binary firmware has been uploaded and bring-up
+captures made (2026-09-19/20 and 2026-09-23: 19,369 raw rows across 6 runs in
+`data/physical`, plus a 20 s run and a 1 h run of 3,598 samples in
+`data/physical_check`, the 1 h run ~39% invalid from ultrasonic echo dropouts;
+the other captures were 99.4-100% valid). They are uncalibrated, all NORMAL and not a dataset; no physical
+experiment or phase acceptance is claimed complete. The sensor set was
 pivoted from motor/vibration monitoring to tank/environmental monitoring — see
 [ADR-008](decisions/ADR-008-sensor-set-pivot.md). **No physical acceptance from
 the old ADXL345/INA219/DS18B20 BOM carries over**; every phase below must be
@@ -10,22 +15,22 @@ re-earned against the actual hardware.
 | Phase | Implemented / verified software | Remaining physical or research acceptance |
 |---|---|---|
 | 0 Foundation | Specification, Git origin, environment, architecture | Confirm real module identity for all five sensors |
-| 1 Ultrasonic slice | HC-SR04 trig/echo driver, CSV firmware/parser | Wire, upload, verify distance readings against a tape measure |
-| 2 DAQ | Cooperative per-sensor polling, bounded service, timestamp/staleness diagnostics | Measure actual echo timing/jitter; confirm DHT read reliability |
-| 3 Transport | V0/V1, CRC, bounded resync, commands/ACK retries | Sustained USB throughput, physical reset/disconnect |
+| 1 Ultrasonic slice | HC-SR04 trig/echo driver, CSV firmware/parser; wired, uploaded and capturing (1 h capture: ~39% of samples invalid from echo dropouts; one earlier run read ~2.2 m, sensor not aimed at the tank) | Verify distance readings against a tape measure; fix aiming/mounting and echo dropouts |
+| 2 DAQ | Cooperative per-sensor polling, bounded service, timestamp/staleness diagnostics; 1 h capture had 0 sequence gaps and 0 parser errors | Measure actual echo timing/jitter; confirm DHT read reliability (DHT checksum errors: 280 of 18,155 samples in the 5 h run, 30 of 3,598 in the 1 h run) |
+| 3 Transport | V0/V1, CRC, bounded resync, commands/ACK retries; binary V1 streamed over real USB for ~5 h and 1 h without parser errors | Physical reset/disconnect (not yet tested), throughput measurement |
 | 4 Complete sensing | Water-level/thermistor/photoresistor analog reads, DHT, LEDs/PN2222 buzzer | Measure water-level module's dry/wet ADC range and thermistor's real resistance/beta |
-| 5 Python DAQ | Serial owner thread, bounded queues, reconnect, logging, Parquet/SQLite | Long hardware soak and driver-specific failures |
+| 5 Python DAQ | Serial owner thread, bounded queues, reconnect, logging, Parquet/SQLite; ~5 h and 1 h real captures stored | Long hardware soak with clean shutdown; a kill now loses at most ~30 s of raw rows and `sentinel reconcile` closes stuck runs (fixed 2026-09-27; not yet exercised by a real hardware kill) |
 | 6 DSP | Slow-signal mean/slope/range/std per channel, two-sensor agreement feature, overlap | Real tank fill/drain curves, sensor noise characterization |
 | 7 Dataset | Run metadata/storage, independent synthetic runs | Controlled safe physical runs and labels |
 | 8 ML | Grouped partitions, model ladder, frozen test workflow, model artifact | Physical model comparison/calibration, operating limits |
 | 9 Live inference | Threshold/model scoring, persistence/recovery, UNKNOWN | Tune against physical false alarms and latency |
 | 10 Closed loop | ACK/retry/idempotency, simulated alarm integration | Verify actual LED/buzzer response through the PN2222 and watchdog |
-| 11 API/UI | Read-only FastAPI/WebSocket, Dash monitoring/explorer | User review on the live tank |
+| 11 API/UI | Read-only FastAPI/WebSocket, React web UI (`frontend/`); Dash was removed | User review on the live tank; `/openapi.json` currently 500s on Python 3.9 |
 | 12 Verification | Unit/integration/fault tests, generated-data stress, evidence scripts | Hardware timing, resource headroom, synchronized T0–T7 |
 | 13 Portfolio | Runnable demo, case-study draft, standalone plots, evidence ledger | Real photos/schematic/video and measured engineering findings |
 | 14 Deferred | Stepper motor and IR receiver reserved pins only (D9–D12, A3) | Not designed or wired this revision; see ADR-008 |
 
-## Validation sequence when hardware arrives
+## Validation sequence (hardware now on hand)
 
 Use Phase 1 criteria first, then validate phases 2–4 before collecting a dataset.
 Record failing and passing runs; do not train on unreliable acquisition. Establish
@@ -39,7 +44,9 @@ tests before presenting the system as a physical diagnostic success.
 - Invalid windows are discarded. The system does not resample irregular data.
 - API history is bounded and local; there is no authentication/deployment setup.
 - Alarm output is advisory only.
-- A physical trained model does not exist. Synthetic classification scores reflect
+- A physical trained model does not exist, and no physical dataset does (only
+  uncalibrated NORMAL-only bring-up captures).
+- Synthetic classification scores reflect
   deliberately separable generated signals and are not evidence of generalization.
 - Water-level module dry/wet range, thermistor resistance/beta, DHT11-vs-DHT22
   scaling, and tank empty/full distance are all unmeasured placeholders — see

@@ -1,10 +1,15 @@
-# Physical experimental procedure (not yet performed)
+# Physical experimental procedure (not yet performed as a dataset)
 
 ## Objective
 
 Collect independent repeatable labelled operating runs on an identified tank
 setup. Hardware wiring and calibration must be verified first (Phase 1–4).
 Simulation condition names are not instructions for physically creating faults.
+
+Status (2026-09-27): only bring-up captures exist, not the procedure below. They
+are all labelled NORMAL, uncalibrated, and had the water probe at its dry floor
+and/or the ultrasonic sensor aimed away from the tank; see
+[the data policy](README.md) and [observed failures](../failures/README.md).
 
 1. Record tank dimensions, sensor mounting (HC-SR04 height above the surface,
    water-level module depth), module part numbers and instrument calibration.
@@ -31,4 +36,6 @@ Simulation condition names are not instructions for physically creating faults.
 
 Acceptance: known safe procedure, complete metadata, usable signals, independent
 groups and a frozen split plan. Record excluded runs and reasons. No physical
-dataset exists as part of the simulation implementation.
+dataset exists yet: the bring-up captures (`data/physical`, `data/physical_check`)
+fail this acceptance because they lack calibration, condition labels beyond NORMAL,
+independent groups and a frozen split plan.

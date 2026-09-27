@@ -1,58 +1,26 @@
 import asyncio
-import json
 import logging
 from pathlib import Path
-from fastapi import APIRouter, FastAPI, Query, WebSocket, WebSocketDisconnect
+import sys
+from fastapi import APIRouter, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
-import pyarrow.parquet as pq
-from sentinel.storage.database import Store, connect
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from sentinel.storage.database import Store
+from sentinel.storage.queries import measurements, query, status
 
 LOG = logging.getLogger(__name__)
+# The API is read-only and unauthenticated, so it answers only to its own loopback names: a web
+# page that rebinds its DNS to 127.0.0.1 arrives with a foreign Host header and is refused.
+# IPv4 loopback only: the server binds 127.0.0.1, and Starlette cannot match a bracketed IPv6 Host.
+LOCAL_HOSTS = ("127.0.0.1", "localhost")
 
 
-def query(root, sql, parameters=()):
-    with connect(root) as db:
-        return [dict(r) for r in db.execute(sql, parameters)]
-
-
-def status(root):
-    import time
-    try:
-        value = json.loads((Path(root)/"status.json").read_text())
-        value["stale"] = time.time()-value["updated_at"] > 3
-        if value["stale"] or value.get("acquisition_status"):
-            value["state"] = "UNKNOWN"
-        return value
-    except (FileNotFoundError, PermissionError, json.JSONDecodeError):
-        return {"state": "UNKNOWN", "stale": True}
-
-
-def measurements(root, run_id=None, limit=800):
-    if run_id is None:
-        latest = query(root, "SELECT run_id FROM experiment_run ORDER BY started_at DESC LIMIT 1")
-        if not latest:
-            return []
-        run_id = latest[0]["run_id"]
-    sql = "SELECT path FROM raw_chunk"
-    args = ()
-    if run_id:
-        sql += " WHERE run_id=?"
-        args = (run_id,)
-    rows = query(root, sql+" ORDER BY rowid DESC LIMIT 4", args)
-    result = []
-    for row in rows:
-        path = (Path(root)/row["path"]).resolve()
-        if Path(root).resolve() not in path.parents:
-            raise ValueError("raw path outside data directory")
-        result = pq.read_table(path).to_pylist() + result
-        if len(result) >= limit:
-            break
-    return result[-limit:]
-
-
-def create_app(root="data"):
+def create_app(root="data", allowed_hosts=LOCAL_HOSTS):
+    if sys.version_info[:3] == (3, 9, 0):
+        LOG.warning("Python 3.9.0 cannot build /openapi.json (nested Literal bug); use Python >= 3.9.1")
     Store(root).close()
     app = FastAPI(title="SentinelDAQ", version="0.1.0")
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(allowed_hosts))
     api = APIRouter(prefix="/api")
 
     @api.get("/health")
@@ -73,22 +41,33 @@ def create_app(root="data"):
 
     @api.get("/measurements")
     def raw(run_id: str = None, limit: int = Query(800, ge=1, le=3200)):
-        return measurements(root, run_id, limit)
+        try:
+            return measurements(root, run_id, limit)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error))
 
     @api.get("/features")
     def features(run_id: str = None, limit: int = Query(100, ge=1, le=1000)):
+        run_id = run_id or None
         return query(root, "SELECT * FROM feature_window WHERE (? IS NULL OR run_id=?) ORDER BY timestamp DESC LIMIT ?", (run_id, run_id, limit))
 
     @api.get("/predictions")
     def predictions(run_id: str = None, limit: int = Query(100, ge=1, le=1000)):
+        run_id = run_id or None
         return query(root, "SELECT p.*, f.run_id, f.timestamp FROM prediction p JOIN feature_window f USING(window_id) WHERE (? IS NULL OR f.run_id=?) ORDER BY timestamp DESC LIMIT ?", (run_id, run_id, limit))
 
     @api.get("/events")
-    def events(limit: int = Query(100, ge=1, le=1000)):
-        return query(root, "SELECT * FROM event ORDER BY started_at DESC LIMIT ?", (limit,))
+    def events(run_id: str = None, limit: int = Query(100, ge=1, le=1000)):
+        run_id = run_id or None
+        return query(root, "SELECT * FROM event WHERE (? IS NULL OR run_id=?) ORDER BY started_at DESC LIMIT ?", (run_id, run_id, limit))
 
     @api.websocket("/live")
     async def live(socket: WebSocket):
+        # Browsers do not apply the same-origin policy to WebSockets, so require it here.
+        origin = socket.headers.get("origin")
+        if origin and origin.split("://", 1)[-1] != socket.headers.get("host"):
+            await socket.close(code=1008)
+            return
         await socket.accept()
         try:
             while True:

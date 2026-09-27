@@ -10,8 +10,8 @@ export const api = {
   status: () => request('/system/status'),
   experiments: (limit = 100) => request(`/experiments?limit=${limit}`),
   measurements: (runId, limit = 800) =>
-    request(`/measurements?limit=${limit}${runId ? `&run_id=${runId}` : ''}`),
+    request(`/measurements?limit=${limit}${runId ? `&run_id=${encodeURIComponent(runId)}` : ''}`),
   predictions: (runId, limit = 200) =>
-    request(`/predictions?limit=${limit}${runId ? `&run_id=${runId}` : ''}`),
+    request(`/predictions?limit=${limit}${runId ? `&run_id=${encodeURIComponent(runId)}` : ''}`),
   events: (limit = 10) => request(`/events?limit=${limit}`),
 }

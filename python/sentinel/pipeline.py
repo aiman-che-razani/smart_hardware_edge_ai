@@ -1,6 +1,7 @@
 """Single processing owner; acquisition uses a bounded queue in runner.py."""
 import time
 import numpy as np
+from sentinel import calibration
 from sentinel.acquisition.protocol import Continuity, DISTANCE_VALID, AMBIENT_VALID
 from sentinel.processing.features import extract, CHANNELS
 from sentinel.processing.windows import Windows
@@ -22,16 +23,18 @@ class Pipeline:
         self.continuity = Continuity()
         self.state = StateMachine(**(state_config or {}))
         self.inference = Inference(model, allow_simulated=simulated)
+        # Tank/sensor calibration. All placeholders pending the real hardware's
+        # exact geometry/part specs; see docs/hardware/design.md.
+        self.calibration = calibration.build(distance_empty_mm, distance_full_mm, water_dry_raw, water_wet_raw)
+        self.distance_empty_mm, self.distance_full_mm = distance_empty_mm, distance_full_mm
+        self.water_dry_raw, self.water_wet_raw = water_dry_raw, water_wet_raw
         if self.inference.artifact and self.inference.artifact["fs"] != fs:
             raise ValueError("model sampling rate mismatch")
         if self.inference.artifact and self.inference.artifact["window"] != {"seconds":seconds,"overlap":overlap}:
             raise ValueError("model window configuration mismatch")
-        # Tank/sensor calibration. All placeholders pending the real hardware's
-        # exact geometry/part specs; see docs/hardware/design.md.
-        self.distance_empty_mm, self.distance_full_mm = distance_empty_mm, distance_full_mm
-        self.water_dry_raw, self.water_wet_raw = water_dry_raw, water_wet_raw
+        if self.inference.artifact and self.inference.artifact.get("calibration") != self.calibration:
+            raise ValueError("model calibration differs from this run's calibration")
         self.count = self.window_count = self.invalid = 0
-        self.last_window = None
         self.last_record = None
         self.latencies = []
 
@@ -73,7 +76,7 @@ class Pipeline:
             self.windows.clear()
             self.state.update(None)
             self.store.transition(host_ns/1e9, "UNKNOWN")
-        if not distance_ok or level_ultrasonic_pct is None or any(record[c] is None for c in CHANNELS):
+        if any(record[c] is None for c in CHANNELS):
             self.invalid += 1
             self.windows.clear()
             self.state.update(None)
@@ -100,7 +103,6 @@ class Pipeline:
         state = self.state.update(score)
         self.store.window(host_ns/1e9, features, self.inference.version, state, score, latency)
         self.window_count += 1
-        self.last_window = window
         self.latencies.append((feature_ms, latency))
         if len(self.latencies) > 10000:
             del self.latencies[:5000]

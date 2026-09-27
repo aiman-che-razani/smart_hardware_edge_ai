@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-struct Sample {
+struct __attribute__((packed)) Sample {  // Wire layout: no compiler padding.
     uint32_t boot, sequence, timestamp;
     uint16_t distance, distanceAge;
     uint16_t waterLevel, thermistor, light;

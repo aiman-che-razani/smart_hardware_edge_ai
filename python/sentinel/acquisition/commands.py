@@ -1,5 +1,5 @@
 import time
-from .protocol import Kind, COMMAND, ACK, encode
+from .protocol import COMMAND, ACK, encode
 
 
 class Commands:
