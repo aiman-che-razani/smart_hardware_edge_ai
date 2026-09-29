@@ -1,6 +1,6 @@
 # Verification matrix
 
-Automated rows are re-run with `.\.venv\Scripts\python.exe -m pytest -q` (79 passed, 2026-09-27). See `docs/TESTING.md`
+Automated rows are re-run with `.\.venv\Scripts\python.exe -m pytest -q` (165 passed, 2026-09-29; the 79 in older rows below is the count at the 2026-09-27 review). See `docs/TESTING.md`
 for coverage, gaps and mutation results. "Passes 2026-09-27" means the named test passes; it does not mean the behavior
 was seen on hardware.
 

@@ -4,8 +4,10 @@ Software implementation across phases was authorized after Phase 0. User selecte
 simulation. Since then the Uno binary firmware has been uploaded and bring-up
 captures made (2026-09-19/20 and 2026-09-23: 19,369 raw rows across 6 runs in
 `data/physical`, plus a 20 s run and a 1 h run of 3,598 samples in
-`data/physical_check`, the 1 h run ~39% invalid from ultrasonic echo dropouts;
-the other captures were 99.4-100% valid). They are uncalibrated, all NORMAL and not a dataset; no physical
+`data/physical_check`, the 1 h run with 38.0% of samples lacking a valid ultrasonic
+echo, 38.9% invalid including DHT errors; the other captures had 99.4-100% valid
+ultrasonic echoes; the `data/` counts are from the ledger and cannot be re-derived
+from the committed files). They are uncalibrated, all NORMAL and not a dataset; no physical
 experiment or phase acceptance is claimed complete. The sensor set was
 pivoted from motor/vibration monitoring to tank/environmental monitoring — see
 [ADR-008](decisions/ADR-008-sensor-set-pivot.md). **No physical acceptance from
@@ -15,7 +17,7 @@ re-earned against the actual hardware.
 | Phase | Implemented / verified software | Remaining physical or research acceptance |
 |---|---|---|
 | 0 Foundation | Specification, Git origin, environment, architecture | Confirm real module identity for all five sensors |
-| 1 Ultrasonic slice | HC-SR04 trig/echo driver, CSV firmware/parser; wired, uploaded and capturing (1 h capture: ~39% of samples invalid from echo dropouts; one earlier run read ~2.2 m, sensor not aimed at the tank) | Verify distance readings against a tape measure; fix aiming/mounting and echo dropouts |
+| 1 Ultrasonic slice | HC-SR04 trig/echo driver, CSV firmware/parser; wired, uploaded and capturing (1 h capture: 38.0% of samples without a valid echo (38.9% invalid with DHT errors), cause not established; one earlier run read ~2.2 m, sensor not aimed at the tank) | Verify distance readings against a tape measure; fix aiming/mounting and echo dropouts |
 | 2 DAQ | Cooperative per-sensor polling, bounded service, timestamp/staleness diagnostics; 1 h capture had 0 sequence gaps and 0 parser errors | Measure actual echo timing/jitter; confirm DHT read reliability (DHT checksum errors: 280 of 18,155 samples in the 5 h run, 30 of 3,598 in the 1 h run) |
 | 3 Transport | V0/V1, CRC, bounded resync, commands/ACK retries; binary V1 streamed over real USB for ~5 h and 1 h without parser errors | Physical reset/disconnect (not yet tested), throughput measurement |
 | 4 Complete sensing | Water-level/thermistor/photoresistor analog reads, DHT, LEDs/PN2222 buzzer | Measure water-level module's dry/wet ADC range and thermistor's real resistance/beta |

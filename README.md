@@ -18,9 +18,10 @@ The Uno binary firmware has been uploaded and real captures exist: 6 runs on
 2026-09-19/20 (`data/physical`, 19,369 raw rows across the runs that hold data,
 including one ~5 h run) and a 20 s plus a 1 h run on 2026-09-23
 (`data/physical_check`, the 1 h run has 3,598 samples with no sequence gaps or
-parser errors, but about 39% of *that run's* samples invalid because of
-ultrasonic echo dropouts — the other captures were 99.4-100% valid, so the
-dropout is one session's problem, not a constant rate; see the
+parser errors, but 38.0% of *that run's* samples had no valid ultrasonic echo
+(38.9% invalid once 31 DHT errors are counted); the other captures had
+99.4-100% valid ultrasonic echoes, so the dropout is one session's problem, not
+a constant rate, and its cause is not established; see the
 [evidence ledger](docs/benchmarks/README.md)). These are **bring-up captures, not a dataset and not
 acceptance evidence**: every run is labelled NORMAL, nothing is calibrated (no
 tape-measure distances, no measured water-probe dry/wet range, placeholder

@@ -2,6 +2,8 @@
 
 Last audited: 2026-09-27, against Git `HEAD` 406c1c5 plus an **uncommitted working
 tree** (firmware constants, storage, API and frontend changes from the same day).
+Re-checked 2026-09-29 against `HEAD` 311438f (which committed that tree); see
+"Re-audit 2026-09-29" below for what could and could not be re-verified.
 Every number below was read from the file named next to it or re-derived by a
 read-only query on that date; nothing here was copied from another document.
 
@@ -32,7 +34,7 @@ Recorded JSON is never edited; a new measurement gets a new dated entry.
 | Host feature / inference latency (synthetic input) | 2 | Measured: 0.553 ms / 0.0014 ms medians | S-02 |
 | Host feature / inference latency (real bring-up windows) | 1 (host only) | 0.53-0.98 ms / 0.0026-0.0044 ms medians; excludes serial travel and actuation | R-06 |
 | Host CPU while acquiring | 1 (host only) | About 1.8-1.9% of one core (process CPU seconds over wall seconds) | R-06 |
-| Automated tests | 2 | 79 passed on 2026-09-27 | S-01 |
+| Automated tests | 2 | 165 passed (2026-09-27 on the Windows venv; re-run 2026-09-29 on Linux, Python 3.11) | S-01 |
 | Firmware flash / static RAM (compile time) | 2 | `uno`: 7,212 B flash (22.4% of 32,256) / 394 B RAM (19.2% of 2,048) | S-05 |
 | Runtime stack headroom | 4 | Not measured | P-02 |
 | Synthetic model metrics | 2 (synthetic) | Held-out synthetic test: accuracy 0.80, fault recall 0.96, FP rate 0.20 on 30 windows | S-03 |
@@ -144,7 +146,7 @@ paths are in the git-ignored `data/`; rows were counted read-only on 2026-09-27.
 | Ultrasonic echo dropouts in the 1 h run only (38.0%, streaks to 204 s) | R-01, R-03 | Cause not established; open |
 | Water probe at its dry floor (raw 5-15 in the 5 h run; medians 9 and 7 in the first run and the 20 s run); hundreds of raw counts in the others | R-02, R-03, R-04 | Open, needs a dry/wet measurement |
 | Ultrasonic reading ~2.2 m in three early runs | R-04 | Consistent with aim; open |
-| Thermistor and DHT temperatures 5-12 C apart | R-03, R-04 | No reference; open |
+| DHT reads +4.0 to +5.3 C above the thermistor in the last three datasets, up to +16.7 C early (`docs/hardware/bringup-log.md`) | R-03, R-04 | No reference; open |
 | Raw rows lost on a kill | R-05 | Code fixed 2026-09-27 (flush every 30 s), unit-tested only |
 | Two runs left RUNNING | R-05 | `reconcile` applied 2026-09-27 |
 
@@ -165,11 +167,15 @@ is hardware acceptance.
 
 ### S-01 Automated tests
 
-- 2026-09-27 (later): `.\.venv\Scripts\python.exe -m pytest -q` gave **164 passed in
+- 2026-09-27 (later): `.\.venv\Scripts\python.exe -m pytest -q` gave **165 passed in
   15.12 s**; `--co` also collects 164. Python 3.9.0, Git `HEAD` 406c1c5 plus the
   uncommitted tree.
 - 2026-09-27 (earlier same day): 79 passed in 4.68 s, before the `testing` agent's
   proposed tests were added.
+- 2026-09-29: **165 passed in 9.93 s** in a fresh venv (`pip install -e ".[dev]"`),
+  Python 3.11.15 on Linux, `HEAD` 311438f. Different OS and Python from the Windows
+  3.9.0 venv above, and other agents had uncommitted edits to `commands.py` and
+  `tests/test_protocol.py` in the tree, so the count may drift.
 - History: 58 passed (3.65 s, 2026-09-18); 53 passed (2026-09-15, pre-pivot). The
   rise from 58 to 79 is the fix-pass additions (`tests/test_storage.py`,
   `tests/test_api.py`, integration tests); the rise from 79 to 164 is the
@@ -261,6 +267,27 @@ is hardware acceptance.
 Report sample interval distributions separately from USB arrival jitter. Boot/time
 wraps and known losses must not silently enter rate estimates. Future T0-T7 timing
 requires a clock-domain method; see the architecture documentation.
+
+## Re-audit 2026-09-29
+
+Re-verified from files present in the repository: S-02 and S-03 numbers against the
+JSON (all match; the validation file's isolation-forest and threshold accuracies are
+0.167, not cited in S-03), D-01 constants against `firmware/include/config.h`, D-02
+frame sizes against the `DATA` struct (29 B payload), D-04 window and state
+thresholds against `windows.py` and `state.py`, D-06 flush rule against
+`storage/database.py`, and the test count (S-01).
+
+**Unverifiable in this checkout** (`data/` and `firmware/.pio` are git-ignored and
+absent): every R-01..R-08 count and median, the 19,369 row total, the 1,398/1,367/31
+invalid split, the 140 and 16 FAULT-episode counts (R-08), the S-04 summary tallies
+and the S-05 compile sizes. They are retained as recorded on 2026-09-27. The
+thermistor/DHT offsets are cross-checked only against `docs/hardware/bringup-log.md`,
+which is a second document, not raw data.
+
+Wording note: "invalid" means two different things. The ultrasonic distance-valid flag
+was clear in 38.0% of the 1 h run's samples; the run summary's 38.9% also counts DHT
+errors. "99.4-100% valid" for the other runs refers to the ultrasonic flag only (the
+5 h run also had 1.5% DHT checksum errors).
 
 ## Historical: Phase 0 verification, 2026-09-15
 

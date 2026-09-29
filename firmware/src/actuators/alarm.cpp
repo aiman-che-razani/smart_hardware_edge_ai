@@ -1,6 +1,7 @@
 #include "alarm.h"
 #include <Arduino.h>
 #include "config.h"
+static_assert(sentinel::kAmber==sentinel::kGreen+1 && sentinel::kRed==sentinel::kGreen+2 && sentinel::kBuzzer==sentinel::kGreen+3, "alarm::begin() loops over contiguous pins");
 namespace { uint32_t lastHost=0; uint8_t state=3; }
 namespace alarm {
 void set(uint8_t value) {

@@ -103,3 +103,11 @@ def test_continuity_rejects_backwards_sequence_and_backwards_device_time():
     assert c.accept(sample(sequence=11, timestamp_ms=9_500)) == (False, False)
     assert c.out_of_order == 2 and c.gaps == 0 and c.previous.sequence == 10
     assert c.accept(sample(sequence=11, timestamp_ms=11_000)) == (True, False)
+
+
+def test_commands_begin_rejects_non_host_kind_and_out_of_range_value():
+    commands = Commands(timeout=1, attempts=2)
+    for kind, value in ((Kind.ACK, 0), (Kind.SET_ALARM, 4), (Kind.PING, 256)):
+        with pytest.raises(ValueError):
+            commands.begin(kind, value, now=0)
+    assert commands.pending is None

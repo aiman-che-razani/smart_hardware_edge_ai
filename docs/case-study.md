@@ -59,15 +59,14 @@ manifests, model comparisons, fault injection and a standalone HTML export.
 
 The [evidence ledger](benchmarks/README.md) lists every number with its date, method
 and raw file, and separates what was measured on the rig from what was measured in
-simulation and what is only configured. The software checks are: 79 automated
-tests passing on 2026-09-27 (79 after the security/data-integrity fixes, then 164
-after adding the tests proposed by the `testing` agent's review the same day; 58
-on 2026-09-18), and the `uno` firmware compiling to
+simulation and what is only configured. The software checks are: 164 automated
+tests passing (re-run 2026-09-29; the count was 58 on 2026-09-18, 79 after the
+2026-09-27 fixes, then 164 after the `testing` agent's tests), and the `uno` firmware compiling to
 7,212 bytes of flash (22%) and 394 bytes of static RAM (19%), which are compile-time
 sizes and not runtime stack measurements. See
 [verification results](benchmarks/software-verification.md) for the dated narrative.
 Synthetic model scores demonstrate the training/evaluation code path only (a
-held-out synthetic test of 30 windows gave 0.80 accuracy and 0.96 fault recall). They cannot support claims of diagnostic
+held-out synthetic test of 30 windows gave 0.80 accuracy, 0.96 fault recall and a 0.20 false-positive rate). They cannot support claims of diagnostic
 accuracy, robustness to a real tank, safe fault detection or generalization.
 
 ## What the first hardware captures showed
@@ -84,7 +83,7 @@ read a median ~2.2 m, consistent with the sensor not being aimed at the tank. Th
 water probe sat at its dry floor (raw 5-15) for the whole ~5 h run, while the 1 h
 run read hundreds, so the probe's behaviour is not yet understood either. The
 thermistor (placeholder constants) and the DHT disagreed by about 5 C in both long
-runs, with no reference thermometer to say which is right. Killed runs lost
+runs (more in earlier runs), with no reference thermometer to say which is right. Killed runs lost
 buffered raw data: run `0ef6e2a5`'s samples are unrecoverable. In total, four
 runs from 2026-09-19/20 hold 19,369 stored rows, and two more of that batch have
 none. All runs are labelled NORMAL and uncalibrated, so they are not a dataset and
