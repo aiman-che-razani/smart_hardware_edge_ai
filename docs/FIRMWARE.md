@@ -277,8 +277,9 @@ Firmware source is never edited by this role; apply and retest on hardware, unle
 4. **`tone()` re-invoked on every repeated `SET_ALARM 2`** (`alarm.cpp:12`): can restart
    the tone. Not fixed (lower priority than #2; same "needs retest" caveat). Fix:
    only call it on a transition into state 2.
-5. **`alarm::begin()` relies on contiguous pins 5..8** (`alarm.cpp:16`). Not fixed.
-   Fix: add `static_assert(kBuzzer == kGreen + 3 && kRed == kGreen + 2 && kAmber == kGreen + 1)`.
+5. **Fixed 2026-09-29, not compiled.** `alarm::begin()` relied on contiguous pins 5..8
+   (`alarm.cpp:16`); `alarm.cpp:4` now has a `static_assert` on the pin constants. Compile-time
+   only, no runtime or size change expected. **Not built** (see below).
 6. **Timestamps precede blocking sensor work** (`sampler.cpp:27`, `ultrasonic.cpp:25`):
    `timestamp`/age understate by the blocking time (<= ~50 ms). Cosmetic at 1 Hz, not fixed.
 7. Stale `.pio/libdeps/uno_edge` (OneWire) exists in the git-ignored build cache from a
@@ -305,3 +306,13 @@ Anything on real hardware (no board access by rule); loop timing and jitter; sta
 depth; `crc16` cycles; DHT typical read time; ADC conversion time; EEPROM endurance
 figure; the boot IDs 47/55 in captures; that the `wiring_pulse.S` phase accounting
 matches real echo timing (read from source only).
+
+## 15. Audit 2026-09-29 (static review; build not run)
+
+`pio` was installed via pip but `atmelavr@5.1.0` could not be downloaded (network blocked:
+`HTTPClientError` at platform install), so **no compile was done and no size was
+re-measured**; section 5 figures are from 2026-09-27. Static review of all files under
+`firmware/`: no new defects found. Rollover-safe gates everywhere, all waits bounded,
+pin map matches `docs/hardware/design.md`, parser bounded (`rx[47]`, 32 B/poll), no heap.
+Only change: the `static_assert` above. Rebuild both envs and re-run the hardware checks
+before relying on it.
