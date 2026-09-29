@@ -1,5 +1,8 @@
 import time
-from .protocol import COMMAND, ACK, encode
+from .protocol import COMMAND, ACK, Kind, encode
+
+HOST_COMMANDS = frozenset((Kind.SET_ALARM, Kind.CLEAR_ALARM, Kind.START_STREAM, Kind.STOP_STREAM, Kind.PING, Kind.GET_CONFIG))
+MAX_ALARM_STATE = 3  # mirrors the firmware's `value<=3` check
 
 
 class Commands:
@@ -14,6 +17,10 @@ class Commands:
     def begin(self, kind, value=0, now=None):
         if self.pending:
             raise RuntimeError("command already pending")
+        if kind not in HOST_COMMANDS:
+            raise ValueError(f"not a host command: {kind}")
+        if not 0 <= value <= (MAX_ALARM_STATE if kind == Kind.SET_ALARM else 255):
+            raise ValueError("command value out of range")
         self.next_id = (self.next_id + 1) & 0xFFFF
         frame = encode(kind, COMMAND.pack(self.next_id, value))
         self.pending = [self.next_id, kind, value, frame, time.monotonic() if now is None else now, 1]

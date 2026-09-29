@@ -1,6 +1,6 @@
 # Testing and verification
 
-Owner: the `testing` agent. Last full run: **2026-09-27, 164 passed in 15.1 s** (Python 3.9.0 venv, pytest 8.4.2),
+Owner: the `testing` agent. Last full run: **2026-09-29, 165 passed in 10.5 s** (Linux, Python 3.11.15 venv, pytest 8.x; earlier 2026-09-27 run: 164 passed in 15.1 s on Python 3.9.0; includes the uncommitted host-command range check in `python/sentinel/acquisition/commands.py`, which no test exercises yet),
 after the 82 tests proposed below were added to `tests/` and the two defects this review found were fixed the same
 day (see both sections below); the review itself was done against 79 passing tests.
 "Tests pass" means the code paths below behave as asserted on simulated data and mocked serial. It does not mean
@@ -12,7 +12,7 @@ the firmware, the USB link, the sensors, the alarm outputs or the web UI work; t
 From the repository root, PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q                              # all 79, about 5 s
+.\.venv\Scripts\python.exe -m pytest -q                              # all 164, about 10 s
 .\.venv\Scripts\python.exe -m pytest -q --co                         # list test ids
 .\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --durations=5
 .\.venv\Scripts\python.exe -m pytest tests/test_storage.py -q        # one file
