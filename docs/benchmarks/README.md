@@ -34,7 +34,7 @@ Recorded JSON is never edited; a new measurement gets a new dated entry.
 | Host feature / inference latency (synthetic input) | 2 | Measured: 0.553 ms / 0.0014 ms medians | S-02 |
 | Host feature / inference latency (real bring-up windows) | 1 (host only) | 0.53-0.98 ms / 0.0026-0.0044 ms medians; excludes serial travel and actuation | R-06 |
 | Host CPU while acquiring | 1 (host only) | About 1.8-1.9% of one core (process CPU seconds over wall seconds) | R-06 |
-| Automated tests | 2 | 164 passed (2026-09-27 on the Windows venv; re-run 2026-09-29 on Linux, Python 3.11) | S-01 |
+| Automated tests | 2 | 165 passed (2026-09-27 on the Windows venv; re-run 2026-09-29 on Linux, Python 3.11) | S-01 |
 | Firmware flash / static RAM (compile time) | 2 | `uno`: 7,212 B flash (22.4% of 32,256) / 394 B RAM (19.2% of 2,048) | S-05 |
 | Runtime stack headroom | 4 | Not measured | P-02 |
 | Synthetic model metrics | 2 (synthetic) | Held-out synthetic test: accuracy 0.80, fault recall 0.96, FP rate 0.20 on 30 windows | S-03 |
@@ -167,12 +167,12 @@ is hardware acceptance.
 
 ### S-01 Automated tests
 
-- 2026-09-27 (later): `.\.venv\Scripts\python.exe -m pytest -q` gave **164 passed in
+- 2026-09-27 (later): `.\.venv\Scripts\python.exe -m pytest -q` gave **165 passed in
   15.12 s**; `--co` also collects 164. Python 3.9.0, Git `HEAD` 406c1c5 plus the
   uncommitted tree.
 - 2026-09-27 (earlier same day): 79 passed in 4.68 s, before the `testing` agent's
   proposed tests were added.
-- 2026-09-29: **164 passed in 9.93 s** in a fresh venv (`pip install -e ".[dev]"`),
+- 2026-09-29: **165 passed in 9.93 s** in a fresh venv (`pip install -e ".[dev]"`),
   Python 3.11.15 on Linux, `HEAD` 311438f. Different OS and Python from the Windows
   3.9.0 venv above, and other agents had uncommitted edits to `commands.py` and
   `tests/test_protocol.py` in the tree, so the count may drift.
